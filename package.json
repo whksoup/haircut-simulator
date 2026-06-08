@@ -1,0 +1,20 @@
+{
+  "name": "haircut-simulator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web-based hair grooming tool — Phase 0 scaffold",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lil-gui": "^0.20.0",
+    "three": "^0.169.0",
+    "three-mesh-bvh": "^0.8.3"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

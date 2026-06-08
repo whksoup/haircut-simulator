@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Haircut Simulator</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #14161a; }
+      #app { position: fixed; inset: 0; }
+      #app canvas { display: block; }
+
+      /* Tiny status readout, bottom-left. Replaced by a real sidebar later. */
+      #hud {
+        position: fixed;
+        left: 12px;
+        bottom: 12px;
+        font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #8b94a3;
+        pointer-events: none;
+        user-select: none;
+      }
+      #hud b { color: #cfd6e0; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hud">Haircut Simulator — <b>Phase 0</b> · scaffold</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

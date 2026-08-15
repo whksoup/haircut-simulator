@@ -21,9 +21,23 @@
  *  side of a part never average with the other side (which would comb them
  *  flat into the parting line).
  *
- * Rebinding only happens when guides are ADDED or REMOVED — combing edits
- * guide points, which the binding doesn't depend on (it reads roots/normals/
- * first-segment flow). For pure combing, nothing here runs.
+ *  SEAM DETOUR (authored parts) — the flow gate is an INFERRED part: it can
+ *  only notice a discontinuity that the guides already disagree about, so it
+ *  cannot create one, and it does nothing at all where both sides are combed
+ *  the same way. Authored seams are the explicit version. Given a SeamField
+ *  and a facet id per strand, the effective distance to a guide becomes
+ *
+ *      d_eff = d_euclid · normalPenalty + seamField.detour(fStrand, fGuide)
+ *
+ *  so a soft seam attenuates weight across the boundary and a hard one makes
+ *  the far side unreachable (weight 0). Both arguments are optional and the
+ *  field reports itself inactive when no seam is authored, so the seamless
+ *  path is unchanged down to the arithmetic — see seamField.js.
+ *
+ * Rebinding only happens when guides are ADDED or REMOVED, or when SEAMS
+ * CHANGE — combing edits guide points, which the binding doesn't depend on (it
+ * reads roots/normals/first-segment flow). For pure combing, nothing here
+ * runs.
  *
  * Perf: uniform grid hash over guide roots → candidate set is O(1) per strand;
  * 200k strands bind in a few ms against a few hundred guides. If binding ever
@@ -40,6 +54,13 @@ export const GUIDES_PER_STRAND = 3;
  * @param {Array}        o.guideList      guides in TEXTURE ROW ORDER (index = row)
  * @param {number}       [o.normalPenalty=2.0]  λ above
  * @param {number}       [o.flowGate=-0.2]      min dot(dir, dominantDir); below → w=0
+ * @param {Int32Array}   [o.strandFacets] facet id per strand, 1/strand. Required
+ *        for seams to do anything; without it every strand is facet -1, which
+ *        the field reads as "unknown provenance" and charges nothing for.
+ * @param {import('./seamField.js').SeamField} [o.seamField]
+ * @param {number}       [o.seamSearchCells=8]  search radius handed to the
+ *        field, in grid cells. Guides further than this lose on Euclidean
+ *        distance anyway, so walking the graph to them buys nothing.
  * @param {Float32Array} o.outRows        out: total*3
  * @param {Float32Array} o.outWeights     out: total*3
  * @param {Float32Array} [o.outTangents]  in/out: total*3. Overwritten with the
@@ -54,6 +75,7 @@ export const GUIDES_PER_STRAND = 3;
 export function bindStrandsToGuides({
   rootPositions, rootNormals, total, guideList,
   normalPenalty = 2.0, flowGate = -0.2,
+  strandFacets = null, seamField = null, seamSearchCells = 8,
   outRows, outWeights, outTangents = null,
 }) {
   const nGuides = guideList.length;
@@ -103,21 +125,34 @@ export function bindStrandsToGuides({
     flow[r * 3] = fx / fl; flow[r * 3 + 1] = fy / fl; flow[r * 3 + 2] = fz / fl;
   }
 
+  // --- seam field -----------------------------------------------------------
+  // Bound the graph walk to a few grid cells. Doing it here rather than at the
+  // field's construction is deliberate: `cell` is derived from the actual
+  // guide layout, so the bound tracks guide density instead of being a magic
+  // number someone has to retune per head.
+  const seamsOn = !!(seamField && seamField.active && strandFacets);
+  if (seamsOn) seamField.setRadius(cell * seamSearchCells);
+
   // --- per-strand kNN -------------------------------------------------------
   const candRows = [];   // reused scratch
   const candD2 = [];
 
-  for (let i = 0; i < total; i++) {
-    const b3 = i * 3;
-    const px = rootPositions[b3], py = rootPositions[b3 + 1], pz = rootPositions[b3 + 2];
-    const nx = rootNormals[b3],  ny = rootNormals[b3 + 1],  nz = rootNormals[b3 + 2];
+  // Per-strand state the gatherer reads. Hoisted out of the loop along with
+  // `gather` itself: allocating a closure per strand is 200k closures per
+  // rebind, which is exactly the kind of quiet garbage that turns a 3ms bind
+  // into a frame hitch.
+  let px = 0, py = 0, pz = 0, nx = 0, ny = 0, nz = 0;
+  let cx = 0, cy = 0, cz = 0, fs = -1;
 
+  /**
+   * Fill candRows/candD2 from the grid. `gate` false ignores seams entirely,
+   * which is the retry path below.
+   * @returns {number} candidates rejected by a seam
+   */
+  function gather(gate) {
     candRows.length = 0; candD2.length = 0;
-
+    let blocked = 0;
     // Expand ring search until we have ≥ k candidates (or exhaust the grid).
-    const cx = Math.floor((px - minX) / cell);
-    const cy = Math.floor((py - minY) / cell);
-    const cz = Math.floor((pz - minZ) / cell);
     for (let ring = 0; ring < 8 && candRows.length < GUIDES_PER_STRAND; ring++) {
       for (let dx = -ring; dx <= ring; dx++)
         for (let dy = -ring; dy <= ring; dy++)
@@ -130,11 +165,47 @@ export function bindStrandsToGuides({
               const ddx = g.root[0] - px, ddy = g.root[1] - py, ddz = g.root[2] - pz;
               const align = nx * g.normal[0] + ny * g.normal[1] + nz * g.normal[2];
               const pen = 1 + normalPenalty * (1 - Math.max(align, -1));
+              const d2 = (ddx * ddx + ddy * ddy + ddz * ddz) * pen * pen;
+
+              if (!gate) { candRows.push(r); candD2.push(d2); continue; }
+
+              // The one place seams enter the binder. Note the sqrt: the
+              // detour is a LENGTH and has to be added in the same units, not
+              // to the square. Not reached at all on the seamless path.
+              const detour = seamField.detour(fs, g.facetId ?? -1);
+              if (!Number.isFinite(detour)) { blocked++; continue; }
+              if (detour === 0) { candRows.push(r); candD2.push(d2); continue; }
+              const dEff = Math.sqrt(d2) + detour;
               candRows.push(r);
-              candD2.push((ddx * ddx + ddy * ddy + ddz * ddz) * pen * pen);
+              candD2.push(dEff * dEff);
             }
           }
     }
+    return blocked;
+  }
+
+  for (let i = 0; i < total; i++) {
+    const b3 = i * 3;
+    px = rootPositions[b3]; py = rootPositions[b3 + 1]; pz = rootPositions[b3 + 2];
+    nx = rootNormals[b3];   ny = rootNormals[b3 + 1];   nz = rootNormals[b3 + 2];
+    fs = seamsOn ? strandFacets[i] : -1;
+
+    cx = Math.floor((px - minX) / cell);
+    cy = Math.floor((py - minY) / cell);
+    cz = Math.floor((pz - minZ) / cell);
+
+    const blocked = gather(seamsOn);
+
+    // NOTHING SURVIVED THE GATE. Either every nearby guide is behind a hard
+    // seam, or the strand's own region has no guide in it at all. Rebinding
+    // without the gate is the least-bad answer: the alternative is a strand
+    // with no guide, which renders as the straight default and reads as a bald
+    // patch with a hard edge — a far louder artefact than a strand borrowing
+    // shape across a part it should not have. Authoring a guide inside the
+    // sealed region is the real fix, and this failure mode makes that visible
+    // rather than punishing it.
+    if (candRows.length === 0 && blocked > 0) gather(false);
+
     // Fallback: brute force if the grid walk found nothing (shouldn't happen).
     if (candRows.length === 0) {
       for (let r = 0; r < nGuides; r++) { candRows.push(r); candD2.push(1); }

@@ -82,6 +82,35 @@ async function main() {
   if (seamOverlay) groomTarget.add(seamOverlay.object);
 
   /**
+   * THE ONE PLACE A SEAM EDIT IS ALLOWED TO LAND.
+   *
+   * Three things have to happen together after any change to permeability,
+   * and every one of them is silent when omitted:
+   *
+   *   overlay.refresh()     the drawn parting still shows the old colours
+   *   renderer.syncSeams()  the binder keeps the CACHED distance field, so the
+   *                         hair does not move — which is indistinguishable
+   *                         from the feature not being wired up, and was
+   *                         literally the state of the world until now
+   *   refreshStats()        the readout lies about the seam count
+   *
+   * Seeding, sealing, reopening, clearing and the edge tool all funnel here
+   * rather than each remembering the list. syncSeams is optional-chained for
+   * the same reason syncGuides is: flipping `kind` to 'gpu' or 'cpu' to bisect
+   * a rendering problem must stay a one-word change.
+   *
+   * Cost is a full rebind, a few ms at 200k strands. Affordable because seam
+   * authoring is a handful of deliberate commits — never a drag. If a
+   * continuous seam control ever appears, it must debounce onto this, not call
+   * it per tick.
+   */
+  function seamsChanged() {
+    seamOverlay?.refresh();
+    renderer.syncSeams?.();
+    refreshStats();
+  }
+
+  /**
    * Edge selection + permeability editing. A peer of raycast and comb in
    * setActiveTool — exactly one owns the pointer.
    *
@@ -99,7 +128,7 @@ async function main() {
           syncSeamSlider?.();
           refreshStats();
         },
-        onEdit: () => { seamOverlay?.refresh(); refreshStats(); },
+        onEdit: () => seamsChanged(),
         onHover: (id) => seamOverlay?.setHover(id),
         onBeginEdit: () => history.mark('seams'),
         onEndEdit:   () => history.commitMark('seams', 'seam permeability'),
@@ -180,7 +209,9 @@ async function main() {
     // renderer and the debug view keep the reference they captured at
     // construction — see GuideStore.copyFrom.
     groom.copyFrom(Groom.fromJSON(patch.data));
-    renderer.rebuild();        // already re-syncs guide rows and rebinds
+    // rebuild() re-syncs guide rows, invalidates the seam field and rebinds,
+    // so an undone seam edit reaches the hair without a second call.
+    renderer.rebuild();
     guideDebug.sync();
     seamOverlay?.refresh();    // seams ride the snapshot scope; see below
     // Edge ids are derived from the mesh, not the groom, so the selection is
@@ -334,8 +365,7 @@ async function main() {
     if (!catalogue) return false;
     return history.transact('seed seams', () => {
       const r = seedSeamsFromCreases(catalogue, groom.seams, opts);
-      seamOverlay?.refresh();
-      refreshStats();
+      seamsChanged();
       log(`seams: ${r.marked} marked of ${r.examined} edges (${r.hard} hard)`);
       // Nothing marked AND nothing cleared means nothing happened.
       return r.marked > 0 || (opts.keepExisting !== true && r.examined > 0);
@@ -380,8 +410,7 @@ async function main() {
         const e = catalogue.getEdge(eid);
         groom.seams.set(e.a, e.b, permeability);
       }
-      seamOverlay?.refresh();
-      refreshStats();
+      seamsChanged();
       log(`seams: sealed ${eids.length} border edge(s)`);
       return eids.length > 0;
     });
@@ -399,8 +428,7 @@ async function main() {
           if (groom.seams.clear(e.a, e.b)) n++;
         }
       }
-      seamOverlay?.refresh();
-      refreshStats();
+      seamsChanged();
       log(`seams: opened ${n} edge(s)`);
       return n > 0;
     });
@@ -411,8 +439,7 @@ async function main() {
       const n = groom.seams.count;
       if (n === 0) return false;
       groom.seams.clearAll();
-      seamOverlay?.refresh();
-      refreshStats();
+      seamsChanged();
       log(`seams: cleared ${n}`);
       return true;
     });
@@ -629,13 +656,49 @@ async function main() {
   refreshStats();
 
   // --- Expose for console debugging ----------------------------------------
-  Object.assign(window, {
+  // WHY THIS IS NOT Object.assign(window, ...).
+  //
+  // `window.history` is a getter-only accessor on Window.prototype, and a
+  // module is strict-mode code, so assigning to it throws
+  //   TypeError: Cannot set property history of #<Window> which has only a
+  //   getter
+  // — which, coming from the very last statement in main(), aborts the whole
+  // bootstrap into the catch block and replaces the HUD with an error, even
+  // though the app behind it is fully built and working. `top`, `name`,
+  // `origin`, `location`, `closed`, `length`, `parent` and `self` are all the
+  // same trap, and the collision is invisible until someone happens to name a
+  // local after one of them.
+  //
+  // So: the namespace is authoritative and always complete, and the bare names
+  // are a best-effort convenience that SKIPS anything the platform already owns
+  // read-only. `hc.history` always works; `history` in the console stays the
+  // browser's, which is the correct thing to lose.
+  const api = {
     viewer, groom, groomTarget, catalogue, raycast, renderer, comb, guideDebug, runtime, history,
     seamOverlay, seamTool, seedSeams, sealSelectionBorder, openSelectionSeams, clearAllSeams,
     topology: () => catalogue?.topology,
     addHairToSelection, removeHairFromSelection, setActiveTool, placeCombAtSelection,
     stats: () => renderer.stats,
-  });
+  };
+  window.hc = api;
+  const shadowed = [];
+  for (const [k, v] of Object.entries(api)) {
+    // Own properties of window we put there ourselves are fine to overwrite;
+    // prototype accessors without a setter are not.
+    let writable = true;
+    for (let o = window; o; o = Object.getPrototypeOf(o)) {
+      const d = Object.getOwnPropertyDescriptor(o, k);
+      if (!d) continue;
+      writable = d.writable === true || typeof d.set === 'function' || o === window;
+      break;
+    }
+    if (writable) { try { window[k] = v; } catch { writable = false; } }
+    if (!writable) shadowed.push(k);
+  }
+  if (shadowed.length) {
+    console.info(`[main] console globals: use hc.${shadowed[0]} for ` +
+      `${shadowed.join(', ')} (the browser owns those names)`);
+  }
 
   if (isPlaceholder) {
     document.getElementById('hud').innerHTML +=

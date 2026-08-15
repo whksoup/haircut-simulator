@@ -413,13 +413,14 @@ export function buildUI({
       const cHint = sf.add(edge, 'hint').name(' ').disable().listen();
       const cSel  = sf.add(edge, 'selected').name('edge selection').disable().listen();
 
-      // HONESTY LINE. Seams are authored, saved and drawn, but guideBinding.js
-      // still binds strands by Euclidean k-nearest and has no knowledge of
-      // permeability — so changing this value currently alters nothing about
-      // the hair. That is not a density artefact and not a tuning problem; the
-      // consumer does not exist yet. Saying so here is cheaper than letting
-      // someone spend an afternoon deciding their mesh is at fault.
-      sf.add({ note: 'display + selection only — binder pending' }, 'note')
+      // WAS AN HONESTY LINE saying seams were display-only. They are not any
+      // more: guideBinding.js spends permeability as extra distance through
+      // seamField.js, so this value now moves hair. Kept as a caption because
+      // what it affects is still worth stating — a seam changes which guides a
+      // strand may BLEND, so its effect is visible only where the two sides
+      // are combed differently. Author a part across uniformly-combed hair and
+      // nothing appears to happen, correctly.
+      sf.add({ note: 'blend across the boundary — needs guides on both sides' }, 'note')
         .name('affects').disable();
 
       // PERMEABILITY IS A TEXT FIELD, NOT A SLIDER.
@@ -588,6 +589,19 @@ export function buildUI({
     bulk.add(manual, 'clear').name('Clear ALL seams');
     bulk.close();
 
+    // How hard a soft seam bites: a multiplier on the per-edge step cost, so
+    // it scales fades and leaves hard parts hard (those are removed from the
+    // graph, not made expensive). A BINDER CONSTANT, not model state — it does
+    // not serialise and is not in history, same reasoning as the Look folder.
+    //
+    // onFinishChange ONLY, deliberately: each change is a full rebind
+    // (O(strands)), which is nowhere near a drag budget. There is no
+    // mark/commitMark pair here for the same reason there is none in Look —
+    // nothing in the groom moved, so there is nothing for a patch to restore.
+    const tune = { seamScale: 3 };
+    sf.add(tune, 'seamScale', 0, 12, 0.5).name('seam falloff strength')
+      .onFinishChange((v) => renderer?.setSeamScale?.(v));
+
     if (seamOverlay) {
       const ov = { show: seamOverlay.visible };
       const cOv = sf.add(ov, 'show').name('Show seam overlay')
@@ -691,43 +705,223 @@ function pickJSON(cb) {
   input.click();
 }
 
-function buildDebugConsole() {
-  const MAX_LINES = 40;
-  const lines     = [];
+/**
+ * The debug log, as a small chat window in the bottom-left corner.
+ *
+ * It used to be a right-aligned block of text with `pointer-events: none`,
+ * which had one decisive problem: you could not scroll it. Forty lines went in
+ * and thirty-nine went past — and this log is the only feedback channel for
+ * half the app (every tool state change, every seam edit, every count), so
+ * "what did that button just say" was unanswerable a second later.
+ *
+ * So it takes pointer events now, and everything else follows from that:
+ *
+ *   POINTER EVENTS ARE SCOPED TO THE PANEL, not to the wrapper. The wrapper is
+ *   `pointer-events: none` and only the panel turns them back on, so the
+ *   corner outside the box still orbits the camera. A full-height transparent
+ *   wrapper that swallowed drags would be a much worse trade than the one it
+ *   was making before.
+ *
+ *   AUTOSCROLL IS CONDITIONAL. Sticking to the bottom is right until the
+ *   moment someone scrolls up to read, at which point yanking them back down
+ *   on the next log line is the single most annoying thing a console can do.
+ *   `_pinned` tracks whether the view is within a few pixels of the bottom and
+ *   only then follows; scrolling back down re-arms it.
+ *
+ *   REPEATS COALESCE. Dragging a slider or sweeping a selection emits the same
+ *   line many times, which used to push everything else out of a 40-line
+ *   buffer in about a second. Identical consecutive messages get a ×N badge
+ *   instead of a new row, so the history above survives the spam.
+ *
+ * The buffer is 200 lines rather than 40 because it is scrollable now, and
+ * still capped because this thing runs for hours.
+ */
+function buildDebugConsole({ max = 200 } = {}) {
+  /** @type {{text:string, count:number, time:string, el:HTMLElement}[]} */
+  const rows = [];
+  let pinned = true;
+  let collapsed = false;
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = [
+    'position: fixed',
+    'left: 12px',
+    'bottom: 12px',
+    'z-index: 9999',
+    'width: 328px',
+    'max-width: calc(100vw - 24px)',
+    'display: flex',
+    'flex-direction: column',
+    'font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace',
+    // The corner outside the box keeps orbiting the camera; only the panel
+    // itself takes the pointer back.
+    'pointer-events: none',
+  ].join(';');
 
   const panel = document.createElement('div');
   panel.style.cssText = [
-    'position: fixed',
-    'bottom: 12px',
-    'right: 12px',
-    'z-index: 9999',
-    'font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace',
-    'color: #8b94a3',
-    'max-width: 320px',
-    'max-height: 140px',
-    'overflow-y: auto',
-    'white-space: pre',
-    'text-align: right',
-    'pointer-events: none',
-    'user-select: none',
+    'pointer-events: auto',
+    'display: flex',
+    'flex-direction: column',
+    'overflow: hidden',
+    'border-radius: 8px',
+    'border: 1px solid rgba(255,255,255,0.07)',
+    'background: rgba(16,18,23,0.82)',
+    '-webkit-backdrop-filter: blur(8px)',
+    'backdrop-filter: blur(8px)',
+    'box-shadow: 0 8px 24px rgba(0,0,0,0.35)',
   ].join(';');
 
-  document.body.appendChild(panel);
+  // --- title bar ------------------------------------------------------------
+  const bar = document.createElement('div');
+  bar.style.cssText = [
+    'display: flex',
+    'align-items: center',
+    'gap: 8px',
+    'padding: 5px 8px',
+    'background: rgba(255,255,255,0.04)',
+    'border-bottom: 1px solid rgba(255,255,255,0.06)',
+    'color: #6f7788',
+    'letter-spacing: 0.04em',
+    'text-transform: uppercase',
+    'font-size: 10px',
+    'user-select: none',
+    'cursor: pointer',
+  ].join(';');
 
-  function render() {
-    panel.textContent = lines.join('\n');
-    panel.scrollTop   = panel.scrollHeight;
+  const title = document.createElement('span');
+  title.textContent = 'log';
+  title.style.flex = '1';
+
+  const mkButton = (label, tip, onClick) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.title = tip;
+    b.style.cssText = [
+      'all: unset',
+      'cursor: pointer',
+      'padding: 0 4px',
+      'color: #6f7788',
+      'font: inherit',
+      'border-radius: 3px',
+    ].join(';');
+    b.onmouseenter = () => { b.style.color = '#c8d0dd'; };
+    b.onmouseleave = () => { b.style.color = '#6f7788'; };
+    // Buttons live inside the bar, and the bar toggles collapse on click.
+    b.onclick = (e) => { e.stopPropagation(); onClick(); };
+    return b;
+  };
+
+  const chevron = document.createElement('span');
+  chevron.textContent = '▾';
+  const clearBtn = mkButton('clear', 'Clear the log', () => api.clear());
+
+  bar.append(title, clearBtn, chevron);
+  bar.onclick = () => setCollapsed(!collapsed);
+
+  // --- message list ---------------------------------------------------------
+  const list = document.createElement('div');
+  list.style.cssText = [
+    'overflow-y: auto',
+    'overflow-x: hidden',
+    'max-height: 30vh',
+    'min-height: 0',
+    'padding: 6px 8px',
+    'color: #96a0b1',
+    'scrollbar-width: thin',
+    'overscroll-behavior: contain',   // don't chain the scroll to the page
+  ].join(';');
+
+  // Re-arm autoscroll only when the view is back at the bottom.
+  list.addEventListener('scroll', () => {
+    pinned = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
+  });
+
+  panel.append(bar, list);
+  wrap.append(panel);
+  document.body.appendChild(wrap);
+
+  function setCollapsed(v) {
+    collapsed = v;
+    list.style.display = v ? 'none' : 'block';
+    chevron.textContent = v ? '▸' : '▾';
+    if (!v) { pinned = true; follow(); }
   }
 
-  return {
+  function follow() {
+    if (pinned) list.scrollTop = list.scrollHeight;
+  }
+
+  function stamp() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:` +
+           `${String(d.getMinutes()).padStart(2, '0')}:` +
+           `${String(d.getSeconds()).padStart(2, '0')}`;
+  }
+
+  /** One row: time, message, and a ×N badge once it repeats. */
+  function makeRow(text) {
+    const el = document.createElement('div');
+    el.style.cssText = [
+      'display: flex',
+      'gap: 7px',
+      'align-items: baseline',
+      'padding: 1px 0',
+      'white-space: pre-wrap',
+      'word-break: break-word',
+    ].join(';');
+
+    const t = document.createElement('span');
+    t.style.cssText = 'color:#4d5566;flex:none;user-select:none';
+
+    const m = document.createElement('span');
+    m.style.flex = '1';
+
+    const n = document.createElement('span');
+    n.style.cssText = 'color:#e0b15a;flex:none;display:none';
+
+    el.append(t, m, n);
+    return { el, t, m, n, text };
+  }
+
+  const api = {
+    /** Append a line. Identical consecutive lines coalesce into a ×N badge. */
     log(msg) {
-      lines.push(msg);
-      if (lines.length > MAX_LINES) lines.shift();
-      render();
+      const text = String(msg);
+      const last = rows[rows.length - 1];
+      if (last && last.text === text) {
+        last.count++;
+        last.n.textContent = `×${last.count}`;
+        last.n.style.display = '';
+        last.t.textContent = stamp();
+        follow();
+        return;
+      }
+
+      const row = makeRow(text);
+      row.count = 1;
+      row.t.textContent = stamp();
+      row.m.textContent = text;
+      rows.push(row);
+      list.appendChild(row.el);
+
+      while (rows.length > max) rows.shift().el.remove();
+      if (collapsed) setCollapsed(false);   // something happened; show it
+      follow();
     },
+
     clear() {
-      lines.length = 0;
-      render();
+      for (const r of rows) r.el.remove();
+      rows.length = 0;
+      pinned = true;
     },
+
+    /** For anything that wants the panel out of the way (or back). */
+    setCollapsed,
+
+    /** The DOM node, in case something needs to reposition or hide it. */
+    element: wrap,
   };
+
+  return api;
 }

@@ -14,6 +14,11 @@
  *
  * Guide path only (kind: 'guides'):
  *   syncGuides()               re-read the GuideStore: rows + rebind
+ *   syncSeams()                re-read the SeamStore: rebind through the seam
+ *                              field. Call after EVERY seam edit — the field
+ *                              caches, so skipping it looks exactly like
+ *                              permeability having no effect.
+ *   setSeamScale(x)            soft-seam strength (binder constant, not model)
  *   setGuide(id, pts, len)     rewrite one guide's texture row
  *   setGuides(ids)             batched form — what a comb stroke calls
  *   setLook({clump, jitter, lenVar})

@@ -18,12 +18,18 @@
  *   GUIDES  own the texture. _guideRow : Map<guideId,row>. Combing rewrites
  *           rows and touches no instance data at all.
  *
- * The bridge between them is the BINDING (guideBinding.js), recomputed only
- * when the guide SET or the strand SET changes. Combing edits guide *points*;
- * binding depends on guide *roots*; therefore combing never rebinds. That is
- * the entire performance argument for this design — interaction cost scales
- * with guides (~10²) while rendering scales with strands (~10⁵) — so do not
- * call rebind() from a comb stroke's onEdit.
+ * The bridge between them is the BINDING (guideBinding.js), recomputed when
+ * the guide SET, the strand SET, or the SEAMS change. Combing edits guide
+ * *points*; binding depends on guide *roots*; therefore combing never rebinds.
+ * That is the entire performance argument for this design — interaction cost
+ * scales with guides (~10²) while rendering scales with strands (~10⁵) — so do
+ * not call rebind() from a comb stroke's onEdit.
+ *
+ * SEAMS are the third input to the binding, and the only one that is authored
+ * somewhere else entirely. A facet id per strand (_iFacet) plus a SeamField
+ * turns permeability into extra distance, so a hard part stops guide weight
+ * crossing it and a soft one fades. It is cached per source facet, which makes
+ * syncSeams() — not rebuild() — the thing every seam edit must call.
  *
  * Per-facet `length` is retired as an instanced attribute: length now lives in
  * the guide texture (texel(row,0).w) and is blended alongside the shape, which
@@ -38,6 +44,8 @@
  * Public API — the renderer.js interface, plus guide/look extensions:
  *     rebuild() / updateFacet(id) / removeFacet(id)
  *     syncGuides()                 — re-read the GuideStore (rows + rebind)
+ *     syncSeams()                  — re-read the SeamStore (invalidate + rebind)
+ *     setSeamScale(x)              — how hard a soft seam bites
  *     setGuide(id, points, length) — rewrite one guide's row, no resample
  *     setLook({clump, jitter, lenVar})
  *     setComb({a, b, radius} | null)   mesh-local comb capsule, vertex pushout
@@ -51,6 +59,7 @@
 import * as THREE from 'three';
 import { makeHairMaterialR3 } from './hairShaderGuides.js';
 import { bindStrandsToGuides, GUIDES_PER_STRAND } from './guideBinding.js';
+import { SeamField } from './seamField.js';
 import { sampleFacetRoots, MAX_STRANDS } from './strandSampler.js';
 import { SHAPE_POINTS, straightShape } from './strandShape.js';
 
@@ -83,6 +92,16 @@ export class GpuHairR3 {
     this._iGuideW   = new Float32Array(MAX_STRANDS * 3);
     this._iSeed     = new Float32Array(MAX_STRANDS);
 
+    /**
+     * Facet id per strand — CPU-side only, never uploaded. The binder needs it
+     * to ask the seam field "how far is it really from here to that guide",
+     * and the answer is a property of the FACET, not of the strand, which is
+     * the whole reason seams cost hundreds of graph walks instead of hundreds
+     * of thousands. Filled in _buildFacet alongside _slices; entries past
+     * _total are stale and nothing reads them.
+     */
+    this._iFacet = new Int32Array(MAX_STRANDS).fill(-1);
+
     /** Map<facetId, {offset, count}> — strand index range per facet. */
     this._slices = new Map();
     this._total  = 0;
@@ -90,6 +109,14 @@ export class GpuHairR3 {
     /** Map<guideId, row> and its inverse, in row order (the binder needs it). */
     this._guideRow  = new Map();
     this._guideList = [];
+
+    /**
+     * Authored parting → binder distance penalty. Held by reference to
+     * groom.seams, which mutates in place (SeamStore.copyFrom), so a load or
+     * an undo does not orphan it. Its CACHE, however, is a snapshot of the
+     * seam values at bind time — see syncSeams.
+     */
+    this._seams = this._catalogue ? new SeamField(this._catalogue, groom.seams) : null;
 
     this._material = makeHairMaterialR3({ color });
 
@@ -152,6 +179,7 @@ export class GpuHairR3 {
    * Call after load, after a masterSeed change, or after a groom swap.
    */
   rebuild() {
+    this._seams?.invalidate();   // geometry/groom may have moved under the cache
     this._syncGuideRows();
     this._slices.clear();
     this._total = 0;
@@ -189,6 +217,39 @@ export class GpuHairR3 {
    */
   syncGuides() {
     this._syncGuideRows();
+    this._rebind();
+    this._commit();
+  }
+
+  /**
+   * Re-read the seam store: drop the cached distance fields and rebind.
+   *
+   * MUST be called after ANY seam edit — permeability typed or presetted,
+   * crease seeding, a bulk seal, clear-all, or a load. The field caches one
+   * Dijkstra per source facet, so without this the binder keeps answering with
+   * the parting as it was before the edit, which presents as "permeability
+   * does nothing" — the exact symptom the seam feature spent its whole life
+   * having for real.
+   *
+   * Costs a full rebind (O(strands), a few ms at 200k). That is fine for the
+   * handful of deliberate actions seam authoring involves and would NOT be
+   * fine on a drag, which is why permeability is committed on Enter/blur
+   * rather than scrubbed — see the ui.js note on the text field.
+   */
+  syncSeams() {
+    this._seams?.invalidate();
+    this._rebind();
+    this._commit();
+  }
+
+  /**
+   * How hard a soft seam bites, as a multiplier on the (1/p − 1) step cost.
+   * A binder constant, not model state: it does not serialise and is not in
+   * history, same as normalPenalty and the Look uniforms. Rebinds.
+   */
+  setSeamScale(scale) {
+    if (!this._seams) return;
+    this._seams.setScale(scale);
     this._rebind();
     this._commit();
   }
@@ -372,6 +433,11 @@ export class GpuHairR3 {
       console.warn(`[GpuHairR3] MAX_STRANDS reached — clipped facet ${facetId}`);
     }
 
+    // Provenance for the seam field. Written here rather than in the sampler
+    // because it is renderer bookkeeping, not sampling — the CPU path has no
+    // use for it and sampleFacetRoots stays a pure function of the facet.
+    this._iFacet.fill(facetId, offset, offset + n);
+
     this._slices.set(facetId, { offset, count: n });
     this._total += n;
   }
@@ -401,6 +467,8 @@ export class GpuHairR3 {
       rootNormals:   this._iNormal,
       total:         this._total,
       guideList:     this._guideList,   // MUST be in texture-row order
+      strandFacets:  this._iFacet,     // provenance for the seam walk
+      seamField:     this._seams,      // inactive (and free) with no seams authored
       outRows:       this._iGuideRow,
       outWeights:    this._iGuideW,
       outTangents:   this._iTangent,    // in place: sampler value is the fallback
@@ -422,6 +490,7 @@ export class GpuHairR3 {
       guides:  this._guideList.length,
       rows:    this._rows,
       perStrandGuides: GUIDES_PER_STRAND,
+      seams:   this._seams?.stats ?? null,
     };
   }
 }

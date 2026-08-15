@@ -31,7 +31,8 @@ flowchart TB
     subgraph render["Render path"]
         rfactory["renderer.js<br>createStrandRenderer, kind = guides | gpu | cpu"]
         gpuR3["gpuHairR3.js — GpuHairR3<br>one draw call; texture row per GUIDE"]
-        binding["guideBinding.js<br>kNN bind → iGuideRow / iGuideW<br>NEXT: geodesic over the facet graph"]
+        seamField["seamField.js — SeamField<br>Dijkstra over the facet graph,<br>cost = scale·len·(1/p − 1), cached per facet"]
+        binding["guideBinding.js<br>kNN bind → iGuideRow / iGuideW<br>d_eff = d·normalPen + seam detour"]
         shaderR3["hairShaderGuides.js<br>k=3 blend, clump, jitter, comb pushout"]
         sampler["strandSampler.js<br>sampleFacetRoots, hash2f"]
     end
@@ -65,7 +66,9 @@ flowchart TB
     groom --> seams
     seams -. "isHard gates growth" .-> raycast
     seams -. "permeability" .-> seamOverlay
-    seams -. "NEXT: step cost 1/p" .-> binding
+    seams -- "step cost 1/p" --> seamField
+    cat -. "edgesOfFacet, length, centroid" .-> seamField
+    seamField -- "detour(facetA, facetB)" --> binding
 
     %% history
     main -- "snapshot / captureGuides / restore" --> history
@@ -101,5 +104,5 @@ flowchart TB
     classDef new fill:#1f4a2a,stroke:#4caf50,stroke-width:2px,color:#fff
     classDef next fill:#4a3a1f,stroke:#e0b15a,color:#fff
     class cat store
-    class seams,seamOverlay,history new
+    class seams,seamOverlay,history,seamField new
     class binding next

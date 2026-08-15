@@ -34,7 +34,14 @@
  * CONSUMERS
  *   - raycast.js       flood-fill selection stops at seams
  *   - seamOverlay.js   draws them
- *   - guideBinding.js  (next) geodesic step cost scales as 1/permeability
+ *   - seamField.js     turns permeability into a graph distance penalty:
+ *                      crossing an edge costs scale · length · (1/p − 1), and
+ *                      a hard seam is removed from the graph outright
+ *   - guideBinding.js  spends that penalty, so a seam attenuates (or stops)
+ *                      the guide weight crossing it. This is the consumer that
+ *                      makes an authored part show up in the hair; every seam
+ *                      edit therefore has to reach renderer.syncSeams(), which
+ *                      main.js funnels through seamsChanged().
  */
 
 /** Below this, an edge is treated as fully impermeable by consumers. */

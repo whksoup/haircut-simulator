@@ -1,0 +1,77 @@
+flowchart TB
+
+    subgraph shell["Application shell"]
+        main["main.js<br>entry point + wiring<br>MISSING: file currently duplicates strands.js"]
+        viewer["viewer.js — Viewer<br>renderer / scene / camera / controls<br>render loop + onUpdate registry"]
+        ui["ui.js — buildUI<br>lil-gui panel + debug console"]
+        raycast["raycast.js — Raycast<br>click to select facets, vertex-colour highlight"]
+    end
+
+    subgraph asset["Mesh and topology"]
+        loadHead["loadHead.js<br>GLB load, prep, procedural fallback"]
+        facet["facetWireframe.js<br>buildFacetCatalogue / buildFacetWireframe"]
+        cat[("mesh.userData.catalogue<br>FacetCatalogue<br>one source of truth")]
+    end
+
+    subgraph model["Data model — no three.js"]
+        groom["groom.js — Groom<br>faces Map, globals, masterSeed<br>schema v3 + migration"]
+        shape["strandShape.js<br>SHAPE_POINTS polyline, shapeBasis<br>combVectorToShape adapter"]
+        constraints["strandConstraints.js<br>solveLengths — FABRIK forward pass"]
+    end
+
+    subgraph render["Render paths — duck-typed interface"]
+        rfactory["renderer.js<br>createStrandRenderer, kind = cpu or gpu"]
+        gpu["gpuHair.js — GpuHair<br>instanced, one draw call<br>shape data texture, one row per facet"]
+        cpu["strands.js — StrandGen<br>LineSegments2 fallback, straight only"]
+        shader["hairShader.js<br>GLSL vertex + fragment, makeHairMaterial"]
+        sampler["strandSampler.js<br>sampleFacetRoots, hash2f<br>shared CPU/GPU determinism"]
+    end
+
+    %% bootstrap
+    main --> viewer
+    main --> loadHead
+    main --> groom
+    main --> raycast
+    main --> ui
+    main --> rfactory
+
+    %% mesh + catalogue
+    loadHead --> facet
+    loadHead -- "stores" --> cat
+    facet -.-> cat
+    viewer -- "viewQuads reuses wireframe" --> facet
+    cat -. "read by" .-> raycast
+    cat -. "getFacet id, triIndices" .-> gpu
+    cat -. "getFacet id, triIndices" .-> cpu
+
+    %% ui wiring
+    ui -- "globals, addFacet, removeFacet" --> groom
+    ui -- "selection, enable, clear" --> raycast
+    ui -- "rebuild, updateFacet, setGrowth" --> rfactory
+    ui -. "combSelection x,y,z callback" .-> main
+
+    %% render selection
+    rfactory --> gpu
+    rfactory --> cpu
+
+    %% render internals
+    gpu --> sampler
+    gpu --> shader
+    gpu --> shape
+    cpu --> sampler
+    shader --> shape
+    shape --> constraints
+    groom --> shape
+
+    %% per-frame
+    viewer -- "onUpdate dt" --> main
+    main -- "update dt, growRate" --> rfactory
+
+    %% scene graph parenting
+    gpu -. "object parented under groomTarget" .-> loadHead
+    cpu -. "object parented under groomTarget" .-> loadHead
+
+    classDef missing fill:#5a1f1f,stroke:#ff6b6b,stroke-width:2px,color:#fff
+    classDef store fill:#1f3a5a,stroke:#4488ff,color:#fff
+    class main missing
+    class cat store

@@ -5,18 +5,24 @@
  * fetch fails) this returns a procedural placeholder head so the rest of the
  * pipeline has a mesh to work against.
  *
- * Returns { root, groomTarget }:
- *   - root        : Object3D to add to the scene (whole GLTF scene or placeholder)
- *   - groomTarget : the Mesh strands will root onto (largest mesh by triangles)
+ * Returns { root, groomTarget, isPlaceholder }:
+ *   - root        : Object3D to add to the scene
+ *   - groomTarget : the Mesh strands will root onto
+ *   - isPlaceholder : true when falling back to the procedural head
  *
- * Blender export convention (see README):
+ * Phase 1.5 (step 1): FacetCatalogue is built unconditionally inside prep()
+ * and stored on mesh.userData.catalogue so Raycast and the strand generator
+ * both read from one source of truth rather than rebuilding it independently.
+ *
+ * Blender export convention:
  *   - Apply all transforms (Ctrl+A → All Transforms) before export.
  *   - Export as glTF Binary (.glb), +Y up.
- *   - GLB triangulates on export — selection granularity is per-triangle.
+ *   - Bake the _facet vertex attribute (Blender polygon index per vertex).
  */
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { buildFacetCatalogue, buildFacetWireframe } from './facetWireframe.js';
 
 const HEAD_URL = 'models/head.glb';
 
@@ -55,27 +61,47 @@ function pickGroomTarget(root) {
   return best;
 }
 
-/** Per-target prep we'll rely on in later phases. */
+/**
+ * Per-target prep — runs on every real GLB mesh.
+ *
+ * Order matters:
+ *   1. computeVertexNormals only if normals are absent (Blender exports them).
+ *   2. toNonIndexed — keeps faceIndex↔triangle mapping 1:1 for raycasting.
+ *      Do NOT call computeVertexNormals after this; on non-indexed geometry
+ *      it would produce flat face normals, killing smooth interpolation.
+ *   3. Build FacetCatalogue from the _facet attribute and store it on
+ *      mesh.userData.catalogue.  Raycast and StrandGen both read from here.
+ */
 function prep(mesh) {
   const g = mesh.geometry;
   if (!g.attributes.normal) g.computeVertexNormals();
-  // A non-indexed copy keeps faceIndex ↔ triangle mapping simple for
-  // raycasting + per-vertex coloring in Phase 1. Cheap at these sizes.
+
   if (g.index) {
     mesh.geometry = g.toNonIndexed();
     g.dispose();
   }
+
   mesh.geometry.computeBoundingBox();
   mesh.geometry.computeBoundingSphere();
+
+  // Catalogue FIRST, wireframe from it. The catalogue now owns the weld and
+  // the facet adjacency graph (see facetWireframe.js); the wireframe is just a
+  // consumer that draws the edges it already computed. Building in this order
+  // makes the dependency explicit and means the expensive pass runs exactly
+  // once whether or not the debug overlay is ever shown.
+  const catalogue = buildFacetCatalogue(mesh.geometry);
+  mesh.userData.catalogue    = catalogue;
+  mesh.userData.wireframeGeo = catalogue
+    ? buildFacetWireframe(mesh.geometry, catalogue).wireframe
+    : null;   // viewer.viewQuads() reuses this
 }
 
 function makePlaceholder() {
   const root = new THREE.Group();
   root.name = 'PlaceholderHead';
 
-  // Roughly head-proportioned ellipsoid (~0.2m across), enough faces to paint.
   const geo = new THREE.SphereGeometry(0.11, 64, 48);
-  geo.scale(1.0, 1.18, 1.05); // taller, slightly deeper than wide
+  geo.scale(1.0, 1.18, 1.05);
   geo.computeVertexNormals();
   const headGeo = geo.toNonIndexed();
   geo.dispose();
@@ -83,13 +109,14 @@ function makePlaceholder() {
   headGeo.computeBoundingSphere();
 
   const mat = new THREE.MeshStandardMaterial({
-    color: 0xc9a48a,
+    color    : 0xc9a48a,
     roughness: 0.72,
     metalness: 0.0,
-    // vertexColors switched on in Phase 1 once we add a color attribute.
   });
   const mesh = new THREE.Mesh(headGeo, mat);
   mesh.name = 'PlaceholderHeadMesh';
+  // No _facet attribute on the placeholder → catalogue stays null.
+  mesh.userData.catalogue = null;
   root.add(mesh);
 
   return { root, groomTarget: mesh, isPlaceholder: true };

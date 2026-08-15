@@ -1,0 +1,105 @@
+flowchart TB
+
+    subgraph shell["Application shell"]
+        main["main.js<br>entry point, wiring, tool arbitration<br>owns the history restore closures"]
+        viewer["viewer.js — Viewer<br>renderer / scene / camera / controls<br>render loop + onUpdate registry"]
+        ui["ui.js — buildUI<br>lil-gui panel + debug console"]
+        raycast["raycast.js — Raycast<br>click select + TOPOLOGICAL ops<br>grow / shrink / fill / invert"]
+        history["history.js — History<br>undo stack, no three.js, no Groom<br>two patch scopes: guides | snapshot"]
+    end
+
+    subgraph asset["Mesh and topology"]
+        loadHead["loadHead.js<br>GLB load, prep, procedural fallback"]
+        facet["facetWireframe.js<br>buildFacetCatalogue → weld + ADJACENCY<br>buildFacetWireframe is now a consumer"]
+        cat[("mesh.userData.catalogue<br>FacetCatalogue<br>facets + edges + topology check<br>DERIVED — no authored data")]
+    end
+
+    subgraph model["Data model — no three.js"]
+        groom["groom.js — Groom<br>faces / guides / seams<br>schema v5 + migration"]
+        guides["guides.js — GuideStore<br>authored strands; copyFrom IN PLACE"]
+        seams["seams.js — SeamStore<br>AUTHORED permeability, keyed by<br>facet PAIR not edge id"]
+        shape["strandShape.js<br>SHAPE_POINTS polyline, shapeBasis"]
+        constraints["strandConstraints.js<br>solveStrand — capsule + length PBD"]
+    end
+
+    subgraph tools["Interaction"]
+        comb["combTool.js — CombTool<br>capsule bar + gizmo<br>stroke = the undo unit"]
+        guideDebug["guideDebugView.js<br>control-point spheres"]
+        seamOverlay["seamOverlay.js<br>authored seams, colour = permeability"]
+    end
+
+    subgraph render["Render path"]
+        rfactory["renderer.js<br>createStrandRenderer, kind = guides | gpu | cpu"]
+        gpuR3["gpuHairR3.js — GpuHairR3<br>one draw call; texture row per GUIDE"]
+        binding["guideBinding.js<br>kNN bind → iGuideRow / iGuideW<br>NEXT: geodesic over the facet graph"]
+        shaderR3["hairShaderGuides.js<br>k=3 blend, clump, jitter, comb pushout"]
+        sampler["strandSampler.js<br>sampleFacetRoots, hash2f"]
+    end
+
+    %% bootstrap
+    main --> viewer
+    main --> loadHead
+    main --> groom
+    main --> raycast
+    main --> ui
+    main --> rfactory
+    main --> comb
+    main --> history
+    main --> seamOverlay
+
+    %% mesh + catalogue
+    loadHead -- "buildFacetCatalogue FIRST" --> facet
+    loadHead -- "stores" --> cat
+    facet -.-> cat
+    viewer -- "viewQuads reuses wireframe" --> facet
+
+    %% adjacency consumers — the new edges
+    cat -. "neighbours, edgesOfFacet" .-> raycast
+    cat -. "dihedral, convex → seed" .-> seams
+    cat -. "edge p0/p1, midpoint" .-> seamOverlay
+    cat -. "edge.length → geodesic (next)" .-> binding
+    cat -. "getFacet id, triIndices" .-> gpuR3
+
+    %% model composition
+    groom --> guides
+    groom --> seams
+    seams -. "isHard gates growth" .-> raycast
+    seams -. "permeability" .-> seamOverlay
+    seams -. "NEXT: step cost 1/p" .-> binding
+
+    %% history
+    main -- "snapshot / captureGuides / restore" --> history
+    comb -- "onStrokeBegin / onStrokeEnd" --> history
+    ui -- "mark / commitMark on drags" --> history
+    history -. "guides patch → setGuides" .-> gpuR3
+    history -. "snapshot patch → copyFrom + rebuild" .-> groom
+
+    %% ui wiring
+    ui -- "globals, addFacet, removeFacet" --> groom
+    ui -- "select ops, seam actions" --> raycast
+    ui -- "rebuild, updateFacet, setLook" --> rfactory
+
+    %% render internals
+    rfactory --> gpuR3
+    gpuR3 --> binding
+    gpuR3 --> shaderR3
+    gpuR3 --> sampler
+    comb --> constraints
+    comb --> guides
+    shaderR3 --> shape
+    guides --> shape
+
+    %% per-frame
+    viewer -- "onUpdate dt" --> main
+    main -- "update dt, growRate" --> rfactory
+
+    %% scene graph parenting
+    gpuR3 -. "parented under groomTarget" .-> loadHead
+    seamOverlay -. "parented under groomTarget" .-> loadHead
+
+    classDef store fill:#1f3a5a,stroke:#4488ff,color:#fff
+    classDef new fill:#1f4a2a,stroke:#4caf50,stroke-width:2px,color:#fff
+    classDef next fill:#4a3a1f,stroke:#e0b15a,color:#fff
+    class cat store
+    class seams,seamOverlay,history new
+    class binding next

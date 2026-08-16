@@ -29,7 +29,14 @@
  * The catalogue is DERIVED from the mesh and must be rebuildable at any
  * moment with nothing authored inside it. Permeability is authored, so it
  * lives in the Groom and serialises with it. That separation is also what
- * keeps groom.js free of Three.js: this file imports nothing.
+ * keeps groom.js free of Three.js: this file imports nothing but the guards.
+ *
+ * A MISSING PERMEABILITY IS NOT ZERO. `fromJSON` used to read `s.p ?? 0`,
+ * which turned any seam record missing its value into a HARD PART — the single
+ * most destructive value in the range, applied silently, at load time. ui.js
+ * had already learned this lesson on the same field and refuses to parse
+ * unparseable input rather than writing 0; the loader now agrees with it. A
+ * record without a `p` is a broken file and says so.
  *
  * CONSUMERS
  *   - raycast.js       flood-fill selection stops at seams
@@ -43,6 +50,8 @@
  *                      edit therefore has to reach renderer.syncSeams(), which
  *                      main.js funnels through seamsChanged().
  */
+
+import { fail, integer, permeability } from './schemaGuards.js';
 
 /** Below this, an edge is treated as fully impermeable by consumers. */
 export const SEAM_HARD = 0.02;
@@ -78,8 +87,8 @@ export class SeamStore {
    * saved file with the default and make `count` useless as a "how much have I
    * authored" readout.
    */
-  set(a, b, permeability) {
-    const p = permeability < 0 ? 0 : permeability > 1 ? 1 : permeability;
+  set(a, b, p_) {
+    const p = p_ < 0 ? 0 : p_ > 1 ? 1 : p_;
     const k = SeamStore.key(a, b);
     if (p >= 1) this.seams.delete(k);
     else        this.seams.set(k, p);
@@ -104,14 +113,31 @@ export class SeamStore {
     });
   }
 
+  /**
+   * Note the round-trip asymmetry, which is intentional and bounded: `set`
+   * deletes any entry at p >= 1, so a hand-written file containing `p: 1` loads
+   * as no entry at all. `toJSON` never emits one, so this only ever bites on
+   * the first load of a hand-edited file, and the second pass is stable —
+   * which is exactly the property persistence_test.mjs asserts.
+   */
   static fromJSON(arr) {
+    if (arr === undefined || arr === null) arr = [];
+    if (!Array.isArray(arr)) fail('seams must be an array');
+
     const store = new SeamStore();
-    for (const s of arr ?? []) {
-      if (s == null) continue;
-      // Route through set() so the >= 1 deletion rule and the clamp apply to
-      // hand-edited files too.
-      store.set(s.a, s.b, s.p ?? 0);
-    }
+    arr.forEach((s, i) => {
+      if (s == null || typeof s !== 'object') fail(`seams[${i}] must be an object`);
+      const a = integer(s.a, `seams[${i}].a`);
+      const b = integer(s.b, `seams[${i}].b`);
+      if (a === b) fail(`seams[${i}] joins facet ${a} to itself`);
+      // NO DEFAULT. See the header: `?? 0` here silently hard-parted the head.
+      const p = permeability(s.p, `seams[${i}].p`);
+      const k = SeamStore.key(a, b);
+      if (store.seams.has(k)) fail(`seams[${i}] repeats the pair ${k}`);
+      // Route through set() so the >= 1 deletion rule applies to hand-edited
+      // files too.
+      store.set(a, b, p);
+    });
     return store;
   }
 

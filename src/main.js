@@ -13,6 +13,10 @@
  * R3.1     : the work plane is gone. The comb is a finite capsule bar placed
  *            by two clicks on the head and dragged with a gizmo — bounded in
  *            every direction, so it can no longer reach through the skull.
+ * R3.2     : SCISSORS. A second capsule — a blade — that truncates guides
+ *            instead of displacing them. The comb authors how the target
+ *            hangs; the scissors authors how long it is. Those are the two
+ *            halves the time rewind will later separate.
  *
  * Two things this file owns that nothing else can:
  *
@@ -20,9 +24,12 @@
  *   needs facet centroids and normals, which live on the catalogue, which the
  *   data model deliberately can't see. So the v3→v4 conversion finishes here.
  *
- *   TOOL ARBITRATION — Raycast and CombTool both listen on pointerdown and
- *   both suspend OrbitControls. Exactly one may be live at a time, and
- *   setActiveTool is the only thing allowed to enable or disable either.
+ *   TOOL ARBITRATION — Raycast, CombTool, SeamTool and ScissorsTool all listen
+ *   on pointerdown and all suspend OrbitControls. Exactly one may be live at a
+ *   time, and setActiveTool is the only thing allowed to enable or disable any
+ *   of them. The scissors joining that list is why it matters that the rule was
+ *   written down: a comb and a blade that both respond to a drag would be a
+ *   destructive kind of ambiguity.
  *
  *   HISTORY RESTORE — history.js owns the stack; it deliberately cannot see
  *   Groom or the renderer. This file supplies the three closures that give a
@@ -37,6 +44,7 @@ import { History }              from './history.js';
 import { buildUI }              from './ui.js';
 import { Raycast }              from './raycast.js';
 import { CombTool }             from './combTool.js';
+import { ScissorsTool }         from './scissorsTool.js';
 import { GuideDebugView }       from './guideDebugView.js';
 import { SeamOverlay }          from './seamOverlay.js';
 import { SeamTool }             from './seamTool.js';
@@ -169,6 +177,14 @@ async function main() {
    * `tangent` rides along because `reauthorTangent` rotates it, and since
    * g.points are expressed in the frame that tangent spans, restoring points
    * without it would put the shape back in the wrong basis.
+   *
+   * `length` is what makes this scope work for the SCISSORS as well as the
+   * comb. A cut rewrites points and length together and touches nothing else —
+   * no root, no frame, no facet — so it is exactly a guides-scope patch and
+   * needs no new machinery. That was true before the scissors existed; the
+   * only reason to say so now is that it is easy to assume a destructive edit
+   * must be structural, and paying for a snapshot per cut would make the tool
+   * unusable as a drag.
    *
    * Float64, not Float32. The guide texture is float32 and the visual
    * difference is nil, but guide points are doubles on the CPU and the solver
@@ -346,6 +362,18 @@ async function main() {
     return true;
   }
 
+  /** The scissors' twin of the above, for the same reason. */
+  function startScissorsPlacement() {
+    if (!scissors) return false;
+    setActiveTool('scissors');
+    const replacing = scissors.hasBar;
+    if (!scissors.beginPlacement()) { log('scissors: could not start placement'); return false; }
+    log(replacing
+      ? 'scissors: click 2 points to REPLACE the blade (Esc cancels)'
+      : 'scissors: click 2 points on the head — the blade appears ABOVE the hair (Esc cancels)');
+    return true;
+  }
+
   // --- Seams ----------------------------------------------------------------
   // Seams are STRUCTURAL as far as history is concerned: they change how the
   // binder is allowed to blend, so undoing one has to go through the snapshot
@@ -471,23 +499,53 @@ async function main() {
     onStrokeEnd:   (ids) => history.commitStroke('comb', ids),
   });
 
+  // --- Scissors blade -------------------------------------------------------
+  // The same two-click placement and the same gizmo, on a tool that removes
+  // length instead of moving it. Three things are deliberately NOT here that
+  // the comb has, and each absence is a decision rather than an omission:
+  //
+  //   NO onPose. The comb publishes its capsule so the shader can clamp render
+  //   strands out of the bar. Hair is SUPPOSED to end at a blade, so there is
+  //   nothing to push out — a pushout would part the hair around the tool whose
+  //   job is to remove it.
+  //
+  //   NO rebind, and no syncGuides. A cut changes points and length; roots do
+  //   not move, so which guides a strand blends is unchanged. Identical to the
+  //   comb's onEdit for identical reasons.
+  //
+  //   NO separate commit step. The scissors resamples from a pristine snapshot
+  //   every pose, so the live guides are already the committed answer at every
+  //   instant of the drag — see the scissorsTool.js header. onStrokeEnd only
+  //   closes the undo entry.
+  const scissors = new ScissorsTool({
+    viewer,
+    mesh:   groomTarget,
+    guides: groom.guides,
+    onEdit: (ids) => { renderer.setGuides(ids); guideDebug.refresh(ids); },
+    onStrokeBegin: () => history.beginStroke(),
+    onStrokeEnd:   (ids) => history.commitStroke('cut', ids),
+  });
+
   // --- Tool arbitration -----------------------------------------------------
-  // Raycast and the comb both want pointerdown and both want to suspend
-  // OrbitControls. Exactly one may be live; this is the only place allowed to
-  // enable or disable either. (The comb's placement clicks and its gizmo are
-  // internally exclusive, so it counts as one tool, not two.)
+  // Raycast, the comb, the seam tool and the scissors all want pointerdown and
+  // all want to suspend OrbitControls. Exactly one may be live; this is the
+  // only place allowed to enable or disable any of them. (Each tool's
+  // placement clicks and its gizmo are internally exclusive, so each counts as
+  // one tool, not two.)
 
   let activeTool = 'none';
   let log = () => {};   // replaced with the debug console once the UI exists
   function setActiveTool(next) {
     if (next === activeTool) return;
-    if (activeTool === 'pick') raycast.disable();
-    if (activeTool === 'comb') comb.disable();
-    if (activeTool === 'seam') seamTool?.disable();
+    if (activeTool === 'pick')     raycast.disable();
+    if (activeTool === 'comb')     comb.disable();
+    if (activeTool === 'seam')     seamTool?.disable();
+    if (activeTool === 'scissors') scissors.disable();
     activeTool = next;
-    if (next === 'pick') raycast.enable();
-    if (next === 'comb') comb.enable();
-    if (next === 'seam') seamTool?.enable();
+    if (next === 'pick')     raycast.enable();
+    if (next === 'comb')     comb.enable();
+    if (next === 'seam')     seamTool?.enable();
+    if (next === 'scissors') scissors.enable();
     // The seam overlay is the seam tool's viewport. Force it on entering the
     // tool — clicking edges you cannot see is not a workflow — but do not
     // force it off on leaving, since inspecting the parting while combing is
@@ -517,6 +575,35 @@ async function main() {
     return comb.placeAtSurfacePoint(point, normal);
   }
 
+  /** The same for the blade. It lands clear of the hair, not on the scalp —
+   *  see ScissorsTool.placeFromPoints on standoff. */
+  function placeScissorsAtSelection() {
+    if (!catalogue || raycast.activeFacetId < 0) return false;
+    const entry = catalogue.getFacet(raycast.activeFacetId);
+    if (!entry) return false;
+    groomTarget.updateMatrixWorld();
+    const point  = entry.centroid.clone().applyMatrix4(groomTarget.matrixWorld);
+    const normal = entry.normal.clone()
+      .transformDirection(groomTarget.matrixWorld).normalize();
+    return scissors.placeAtSurfacePoint(point, normal);
+  }
+
+  /**
+   * Cut once at the blade's current pose, as an explicit action.
+   *
+   * The drag is the normal gesture, but "put the blade where the hair should
+   * end, then press cut" is the precise one — and it is the only way to use
+   * the tool without also having to be good at dragging a gizmo. ScissorsTool
+   * opens and closes its own stroke here, so this is one undo entry.
+   */
+  function cutAtBlade() {
+    if (!scissors.hasBar) { log('scissors: place a blade first'); return 0; }
+    const n = scissors.cut();
+    log(n ? `cut: shortened ${n} guide(s)` : 'cut: the blade is not touching any hair');
+    refreshStats();
+    return n;
+  }
+
   // --- UI -------------------------------------------------------------------
 
   ({ gui, refreshStats, dbg } = buildUI({
@@ -525,11 +612,14 @@ async function main() {
     renderer,
     runtime,
     comb,
+    scissors,
     guideDebug,
     history,
     seamOverlay,
     seamTool,
     startCombPlacement,
+    startScissorsPlacement,
+    cutAtBlade,
     selectionOps,
     seamsFromFacetSelection,
     seamFromFacetPair,
@@ -544,6 +634,7 @@ async function main() {
     clearAllSeams,
     catalogue,
     placeCombAtSelection,
+    placeScissorsAtSelection,
     setActiveTool,
     addHairToSelection,
     removeHairFromSelection,
@@ -584,12 +675,17 @@ async function main() {
     const backedOut = seamTool?.cancel?.();
     if (backedOut) { log(`esc: ${backedOut}`); return; }
 
-    // 2. Cancel an in-progress comb placement, or clear its axis isolation.
-    //    CombTool handles this itself when the canvas has focus; calling it
+    // 2. Cancel an in-progress placement, or clear the comb's axis isolation.
+    //    Each tool handles this itself when the canvas has focus; calling it
     //    here covers the case where focus is in the panel.
     if (activeTool === 'comb' && comb?.hasBar === false) {
       comb.cancelPlacement?.();
-        log('esc: cancelled comb placement');
+      log('esc: cancelled comb placement');
+      return;
+    }
+    if (activeTool === 'scissors' && scissors.isPlacing) {
+      scissors.cancelPlacement();
+      log('esc: cancelled blade placement');
       return;
     }
 
@@ -607,10 +703,11 @@ async function main() {
     }
   }, true);
 
-  // --- Comb placement shortcut ----------------------------------------------
-  // 'P' re-arms two-click placement from anywhere. The comb's own hotkeys are
-  // bare letters handled on the canvas (W/E/Q/X/Y/Z), so this is registered
-  // here alongside them and skips modifier chords for the same reason.
+  // --- Placement shortcut ---------------------------------------------------
+  // 'P' re-arms two-click placement for whichever bar tool is active. Bare
+  // letters, handled here rather than in either tool, because the two tools
+  // must not both answer the same key — and because "P places the thing I am
+  // holding" is one rule instead of two.
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
@@ -618,7 +715,8 @@ async function main() {
         (t instanceof HTMLElement && t.isContentEditable)) return;
     if (e.key.toLowerCase() !== 'p') return;
     e.preventDefault();
-    startCombPlacement();
+    if (activeTool === 'scissors') startScissorsPlacement();
+    else                           startCombPlacement();
     gui?.controllersRecursive().forEach((c) => c.updateDisplay());
   });
 
@@ -674,10 +772,12 @@ async function main() {
   // read-only. `hc.history` always works; `history` in the console stays the
   // browser's, which is the correct thing to lose.
   const api = {
-    viewer, groom, groomTarget, catalogue, raycast, renderer, comb, guideDebug, runtime, history,
+    viewer, groom, groomTarget, catalogue, raycast, renderer, comb, scissors,
+    guideDebug, runtime, history,
     seamOverlay, seamTool, seedSeams, sealSelectionBorder, openSelectionSeams, clearAllSeams,
     topology: () => catalogue?.topology,
-    addHairToSelection, removeHairFromSelection, setActiveTool, placeCombAtSelection,
+    addHairToSelection, removeHairFromSelection, setActiveTool,
+    placeCombAtSelection, placeScissorsAtSelection, cutAtBlade,
     stats: () => renderer.stats,
   };
   window.hc = api;

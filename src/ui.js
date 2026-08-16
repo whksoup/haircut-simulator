@@ -2,9 +2,9 @@
  * UI — prototype controls (lil-gui).
  *
  * Model:
- *   - ONE active tool at a time (none / pick / comb). The dropdown is the only
- *     thing that changes it, and it goes through main.js's setActiveTool —
- *     Raycast and CombTool both grab pointerdown and both suspend
+ *   - ONE active tool at a time (none / pick / comb / scissors / seam). The
+ *     dropdown is the only thing that changes it, and it goes through main.js's
+ *     setActiveTool — every one of those tools grabs pointerdown and suspends
  *     OrbitControls, so letting two run at once means a click selects a facet
  *     AND drops a comb endpoint.
  *   - "Add hair to selection" / "Remove hair from selection" apply hair to
@@ -15,6 +15,10 @@
  *     gesture), then the bar's dimensions, then gizmo behaviour. Radius and
  *     length are properties rather than gizmo scale — a scaled object would
  *     make the capsule maths lie about its own size.
+ *   - Scissors folder: the same shape as Comb, because it is the same gesture
+ *     on a tool that removes length instead of moving it. It is deliberately
+ *     SHORTER — a blade has no strength, no root stiffness and no solver
+ *     iterations, because a cut is a truncation and not a solve.
  *   - Look folder: clump / jitter / length variation. These are pure shader
  *     uniforms — no rebuild, no rebind, no resample. Drag them freely.
  *   - Growth folder: drives the renderer's growth ramp.
@@ -56,6 +60,10 @@
  *   They are therefore declared at the TOP of buildUI, before any folder is
  *   built. If you add another cross-folder closure, declare it there too.
  *
+ *   Scissors sits directly after Comb and BEFORE Seams for the same reason
+ *   Comb was moved up: Seams is the largest block of code in the build, and a
+ *   throw in it must not be able to take a primary tool down with it.
+ *
  * The R2 "Comb (GPU)" folder is gone: bend-X / bend-Z authored one shape per
  * facet, which the guide model supersedes. The Plane folder is gone too — the
  * work plane no longer exists; the comb bar carries its own gizmo.
@@ -70,9 +78,12 @@ import { Groom } from './groom.js';
  * @param {Function} opts.onLoad
  * @param {Function} [opts.addHairToSelection]
  * @param {Function} [opts.removeHairFromSelection]
- * @param {Function} [opts.setActiveTool]           'none' | 'pick' | 'comb' | 'seam'
+ * @param {Function} [opts.setActiveTool]           'none' | 'pick' | 'comb' | 'scissors' | 'seam'
  * @param {Function} [opts.placeCombAtSelection]    () => boolean
+ * @param {Function} [opts.placeScissorsAtSelection] () => boolean
+ * @param {Function} [opts.cutAtBlade]              () => number
  * @param {import('./combTool.js').CombTool} [opts.comb]
+ * @param {import('./scissorsTool.js').ScissorsTool} [opts.scissors]
  * @param {import('./guideDebugView.js').GuideDebugView} [opts.guideDebug]
  * @param {import('./history.js').History} [opts.history]
  * @param {import('./seamOverlay.js').SeamOverlay} [opts.seamOverlay]
@@ -88,11 +99,12 @@ import { Groom } from './groom.js';
  * @param {object}   [opts.renderer]
  */
 export function buildUI({
-  groom, onLoad, raycast, renderer, runtime, comb, guideDebug, history,
-  seamOverlay, seamTool, selectionOps, catalogue, startCombPlacement,
+  groom, onLoad, raycast, renderer, runtime, comb, scissors, guideDebug, history,
+  seamOverlay, seamTool, selectionOps, catalogue,
+  startCombPlacement, startScissorsPlacement, cutAtBlade,
   seamsFromFacetSelection, seamFromFacetPair, setSyncHooks,
   seedSeams, sealSelectionBorder, openSelectionSeams, clearAllSeams,
-  setActiveTool, placeCombAtSelection,
+  setActiveTool, placeCombAtSelection, placeScissorsAtSelection,
   addHairToSelection, removeHairFromSelection,
 }) {
   const gui = new GUI({ title: 'Groom' });
@@ -125,6 +137,9 @@ export function buildUI({
           refreshStats();
           gui.controllersRecursive().forEach((c) => c.updateDisplay());
         } catch (e) {
+          // The loader names the record and the field it choked on — see
+          // schemaGuards.js. Passing e.message through verbatim is the whole
+          // point of it doing that.
           console.error('[UI] failed to load groom:', e);
           alert('Could not load groom: ' + e.message);
         }
@@ -137,7 +152,9 @@ export function buildUI({
   // Buttons mirror Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (bound in main.js). The
   // labels carry the pending entry's name so the stack is legible without a
   // separate panel — "Undo comb" reads very differently from "Undo remove
-  // hair" when you are three strokes deep and unsure what you just did.
+  // hair" when you are three strokes deep and unsure what you just did. It
+  // matters more now that "Undo cut" is in the vocabulary and is the one entry
+  // you cannot reconstruct by hand.
   if (history) {
     const edit = gui.addFolder('Edit');
     const editActions = {
@@ -166,7 +183,7 @@ export function buildUI({
   // Captured: the seam bridges below call setActiveTool('seam') directly, and
   // the dropdown has to follow or it lies about which tool owns the pointer.
   const toolCtrl = tools
-    .add(toolState, 'tool', ['none', 'pick', 'comb', 'seam'])
+    .add(toolState, 'tool', ['none', 'pick', 'comb', 'scissors', 'seam'])
     .name('Active tool')
     .onChange((v) => setActiveTool?.(v));
 
@@ -361,10 +378,13 @@ export function buildUI({
     cs.add(comb, 'rootRamp', 0,    4, 0.1).name('root stiffness');
 
     // 'none' collides without preserving length, which is a diagnostic rather
-    // than a mode: strands stretch under the correction and phase more easily
-    // next stroke. More iterations = tighter length under contact.
+    // than a mode: strands stretch under the correction, phase more easily
+    // next stroke, and `aT` stops being arc length — which silently
+    // invalidates every cut and every rewind reading. More iterations = tighter
+    // length under contact.
     cs.add(comb, 'constrain', ['length', 'none']).name('length constraint');
     cs.add(comb, 'iterations', 1, 16, 1).name('solver iterations');
+    cs.add(comb, 'settleIterations', 0, 256, 8).name('stroke-end relax');
     cs.add(comb, 'reauthorTangent').name('re-author flow tangent');
 
     // Gizmo scale is deliberately absent: radius and length are the truth.
@@ -378,6 +398,138 @@ export function buildUI({
     cs.add(cstate, 'snapPos', 0, 0.1, 0.005).name('snap move').onChange(pushSnap);
     cs.add(cstate, 'snapRot', 0, 45,  5).name('snap rotate (deg)').onChange(pushSnap);
     cs.close();
+
+    // --- Length invariant readout -------------------------------------------
+    // The one number in this panel that is not about the instrument. It says
+    // whether `aT` is still arc length — which is what the cut and the (later)
+    // rewind both read. It is a property of the GROOM, not of the comb, and it
+    // lives here only because the comb is what usually breaks it.
+    const audit = {
+      status: 'not measured',
+      check: () => {
+        const a = comb.lengthResidual();
+        audit.status = a.ok
+          ? `holds (worst ${(a.maxRel * 100).toFixed(3)}%)`
+          : `VIOLATED on ${a.failing} guide(s), worst ${(a.maxRel * 100).toFixed(2)}%`;
+        dbg.log(`length invariant: ${audit.status}`);
+      },
+    };
+    cf.add(audit, 'status').name('aT is arc length').disable().listen();
+    cf.add(audit, 'check').name('Check length invariant');
+    cf.close();
+  }
+
+  // --- Scissors -------------------------------------------------------------
+  // Same gesture as the comb, opposite effect: the blade removes length rather
+  // than moving it. Placed directly after Comb so the two bar tools read as a
+  // pair, and before Seams so a throw down there cannot hide either.
+  //
+  // TWO THINGS THIS PANEL HAS TO SAY OUT LOUD, because both are destructive
+  // and neither is visible from the viewport:
+  //
+  //   THE BLADE IS BORN ABOVE THE HAIR, not tangent to the scalp like the
+  //   comb. A blade placed at the roots would shave the head on the first
+  //   drag. You push it down into the hair.
+  //
+  //   CUTTING IS NOT REVERSIBLE BY CUTTING. Undo works (a cut is one history
+  //   entry, same cheap guides scope as a comb stroke), but dragging the blade
+  //   back out restores nothing — a cut composes by minimum, which is what
+  //   scissors do. The status line says how much is currently at stake.
+  if (scissors) {
+    const sf = gui.addFolder('Scissors');
+
+    const place = {
+      get status() {
+        if (scissors.isPlacing) return 'click 2 points on the head';
+        return scissors.hasBar ? 'placed — drag it into the hair' : 'none';
+      },
+      create: () => {
+        startScissorsPlacement?.();
+        toolState.tool = 'scissors';
+        toolCtrl.updateDisplay();
+      },
+      atFacet: () => {
+        if (placeScissorsAtSelection?.()) dbg.log('scissors: blade placed above the selected facet');
+        else dbg.log('scissors: no facet selected');
+      },
+      remove: () => {
+        if (scissors.clearBar()) dbg.log('scissors: blade deleted');
+        else dbg.log('scissors: no blade to delete');
+        toolState.tool = 'scissors';
+        toolCtrl.updateDisplay();
+      },
+      // The precise gesture, and the one that does not require being good at
+      // dragging a gizmo: park the blade where the hair should end, press cut.
+      cut: () => { cutAtBlade?.(); },
+      // Read-only preview of the same thing, for when you want to know what a
+      // press would do before you press it. A destructive tool should be able
+      // to answer that.
+      preview: () => {
+        const d = scissors.diagnose();
+        dbg.log(`scissors: ${d.verdict}`);
+      },
+    };
+
+    sf.add(place, 'status').name('blade').disable().listen();
+    sf.add(place, 'create').name('New blade — set 2 points  [P]');
+    sf.add(place, 'atFacet').name('New blade over selected facet');
+    sf.add(place, 'remove').name('Delete blade');
+    sf.add(place, 'cut').name('CUT at current pose');
+    sf.add(place, 'preview').name('What would this cut?');
+
+    // --- Patch mask ---------------------------------------------------------
+    // Same contract as the comb's, and more valuable here: the mistake a mask
+    // prevents on a blade is one you cannot undo by re-cutting.
+    const mask = {
+      get status() {
+        const n = scissors.maskSize;
+        return n ? `${n} facet(s)` : 'off — cuts everywhere';
+      },
+      set: () => {
+        if (raycast.selection.size === 0) {
+          dbg.log('scissors: nothing selected — pick facets first, then mask');
+          return;
+        }
+        dbg.log(`scissors: confined to ${scissors.setMask(raycast.selection)} facet(s)`);
+      },
+      clear: () => {
+        if (scissors.maskSize) dbg.log('scissors: mask cleared — cuts everywhere again');
+        scissors.clearMask();
+      },
+    };
+    sf.add(mask, 'status').name('patch mask').disable().listen();
+    sf.add(mask, 'set').name('Mask to selection');
+    sf.add(mask, 'clear').name('Clear mask');
+
+    // --- Blade shape and gizmo ----------------------------------------------
+    // Far fewer knobs than the comb, and that is the point: a cut is a
+    // truncation, not a solve. There is no strength (a blade either reaches a
+    // strand or it does not), no root stiffness, and no iteration count.
+    const ss = sf.addFolder('Blade shape & gizmo');
+    const sstate = {
+      radius: scissors.radius,
+      length: scissors.length,
+      visible: true,
+      mode: 'translate',
+      space: 'local',
+    };
+    // Thickness is the cut's fuzziness — the blade cuts at its NEAR face, so a
+    // fat blade cuts shorter than its centre line suggests.
+    ss.add(sstate, 'radius', 0.002, 0.1, 0.001).name('blade thickness').listen()
+      .onChange((v) => scissors.setRadius(v));
+    ss.add(sstate, 'length', 0.01, 1.0, 0.005).name('blade length')
+      .onChange((v) => scissors.setLength(v));
+    // Not cosmetic: #3's loader rejects a guide of length <= 0 and history's
+    // structural restore runs through it, so a cut to zero would make its own
+    // undo throw. Shaving to the scalp is a guide REMOVAL, a different edit.
+    ss.add(scissors, 'minLength', 0.001, 0.05, 0.001).name('min length (never cut past)');
+    ss.add(sstate, 'visible').name('show blade').onChange((v) => scissors.setVisible(v));
+    ss.add(sstate, 'mode', ['translate', 'rotate'])
+      .name('gizmo mode').onChange((v) => scissors.setMode(v));
+    ss.add(sstate, 'space', ['local', 'world'])
+      .name('gizmo space').onChange((v) => scissors.setSpace(v));
+    ss.close();
+    sf.close();
   }
 
   // --- Select ---------------------------------------------------------------
@@ -678,7 +830,7 @@ export function buildUI({
 
   const stats = {
     selected: 0, seamEdges: 0, hairFaces: 0, guides: 0, seams: 0,
-    strands: 0, undoDepth: 0,
+    strands: 0, undoDepth: 0, shortestGuide: 0, longestGuide: 0,
   };
   info.add(stats, 'selected').disable().listen();
   info.add(stats, 'seamEdges').disable().listen();
@@ -687,6 +839,11 @@ export function buildUI({
   info.add(stats, 'seams').disable().listen();
   info.add(stats, 'strands').disable().listen();
   info.add(stats, 'undoDepth').disable().listen();
+  // The two numbers a cut moves. Without them the only evidence a cut happened
+  // is the render, and a cut that clamped to minLength or missed the mask
+  // entirely looks identical to one that did nothing.
+  info.add(stats, 'shortestGuide').disable().listen();
+  info.add(stats, 'longestGuide').disable().listen();
   info.close();
 
   function refreshStats() {
@@ -698,6 +855,14 @@ export function buildUI({
     stats.selected  = raycast?.selection.size ?? 0;
     stats.strands   = renderer?.stats?.strands ?? 0;
     stats.undoDepth = history?.depth ?? 0;
+
+    let lo = Infinity, hi = 0;
+    for (const g of groom.guides.guides.values()) {
+      if (g.length < lo) lo = g.length;
+      if (g.length > hi) hi = g.length;
+    }
+    stats.shortestGuide = Number.isFinite(lo) ? +lo.toFixed(4) : 0;
+    stats.longestGuide  = +hi.toFixed(4);
   }
   refreshStats();
 

@@ -59,6 +59,54 @@
  * `constrain = 'none'` the same stroke stretches the worst edge by 842% and
  * STILL fails to keep the bar out.
  *
+ * LENGTH IS ON, AND IT IS LOAD-BEARING FOR THINGS THAT ARE NOT THE COMB.
+ *
+ *   `constrain = 'length'` is the default and `constrain = 'none'` is now only
+ *   a bisect switch. The reason it was ever off — forward FABRIK re-laid the
+ *   chain below any pushed mid-point and the tip whipped — is fixed at the
+ *   source: solveStrand distributes corrections by inverse mass, so nothing is
+ *   re-laid rigidly. `iterations = 8` because residual stretch under active
+ *   contact drops from 1.5% to 0.07% between 4 and 8 while the measured cost
+ *   moves 117µs → 119µs per event at 400 guides.
+ *
+ *   THOSE PER-SUB-STEP FIGURES DO NOT DESCRIBE A STROKE, and the previous
+ *   revision of this header quoted them as if they did. Every sub-step ends on
+ *   a collision projection, so every sub-step banks a little stretch, and the
+ *   probe pass — correctly — never revisits a guide the bar has swept past.
+ *   Whether that accumulation gets collected depends entirely on WHERE YOU LET
+ *   GO, which is not a property anyone would expect to matter:
+ *
+ *     bar sweeps fully past the hair   0.04% worst segment, 0.02% arc
+ *     bar released while still in it   6.28% worst segment, 4.16% arc
+ *
+ *   Same solver, same settings, two orders of magnitude apart. The first case
+ *   relaxes for free because the closing sub-steps have shrinking penetration
+ *   and a free length solve; the second never gets that. And releasing the drag
+ *   with the comb still amongst the hair is a completely normal way to finish a
+ *   stroke. A 4.16% arc error makes `aT` not arc length, which makes #6a's cut
+ *   number wrong by 4% of a head of hair, silently.
+ *
+ *   `_relaxStroke` closes it, and it is nearly free because it is paid per
+ *   STROKE on only the guides in `_strokeIds`: 128 length sweeps at the bar's
+ *   final pose take the bad case to 0.0001%. Reaching the same place by raising
+ *   `iterations` would cost that on every guide on every sub-step.
+ *
+ *   THE INVARIANT IS |p[k+1] − p[k]| = SHAPE_REST, and it is what makes `aT`
+ *   ARC LENGTH rather than an arbitrary parameter. Everything downstream reads
+ *   it that way — the arc-length resampler, the scissors commit, and above all
+ *   the time rewind, which truncates by shader parameter and reports a number
+ *   someone cuts hair by. When the invariant slips, none of that looks wrong;
+ *   it is just wrong. So it is MEASURED, not assumed: `lengthResidual()` below
+ *   and `guideLengthAudit.js` expose it, `diagnose()` prints it, and the commit
+ *   paths assert on it.
+ *
+ *   ONE KNOWN LEAK, reported rather than hidden: the write-back clamps local z
+ *   to ≥ 0 (the per-guide scalp guard) AFTER the solve, which is a position
+ *   edit outside the constraint and can push a near-root segment off rest
+ *   length. `lengthResidual()` sees it. The real fix is a head SDF inside the
+ *   solve loop — see the plan's #10, which this makes measurable rather than a
+ *   matter of taste.
+ *
  * WHY A CAPSULE AND NOT A CUBOID
  *
  *   A box is the more comb-like shape, but ejecting to the nearest FACE has a
@@ -97,14 +145,7 @@
  * pulled through the inverse mesh matrix once per sub-step, so the
  * per-control-point inner loop is pure arithmetic. Assumes uniform mesh scale.
  *
- * STILL SWITCHED OFF, unchanged from the previous revision — each is a flag,
- * not a deletion:
- *
- *   constrain = 'none'   solveLengths is a FORWARD-ONLY pass from the pinned
- *                        root, so a pushed mid-point rigidly re-lays the chain
- *                        below it and the tip whips. Off, strands elongate
- *                        under repeated strokes and nothing pulls them back —
- *                        expect drift. Set 'length' to restore it exactly.
+ * STILL SWITCHED OFF — a flag, not a deletion:
  *
  *   reauthorTangent = false
  *                        g.points live in the frame spanned by g.normal and
@@ -163,7 +204,10 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { SHAPE_POINTS, SHAPE_REST } from './strandShape.js';
-import { buildInvMass, solveStrand, closestPtSegmentSegment } from './strandConstraints.js';
+import {
+  buildInvMass, solveStrand, relaxStrand, closestPtSegmentSegment,
+} from './strandConstraints.js';
+import { auditGuideLengths, LENGTH_TOL } from './guideLengthAudit.js';
 
 const UNIT_Y   = new THREE.Vector3(0, 1, 0);
 const MIN_LEN  = 0.005;
@@ -210,17 +254,35 @@ export class CombTool {
     this.strength = 1.0;    // 1 = solid wall, <1 = spongy
     this.rootRamp = 1.0;    // along-strand compliance exponent; 0 = rigid drag
 
-    // Length is ON by default now. It is not optional decoration: a collision
-    // correction with no length constraint just stretches the strand, and the
-    // longer edges phase through the bar more easily next stroke. See the
-    // strandConstraints.js header.
+    // Length is ON. It is not optional decoration: a collision correction with
+    // no length constraint just stretches the strand, the longer edges phase
+    // through the bar more easily next stroke, AND `aT` stops being arc length
+    // — which silently invalidates the resampler, the scissors commit and the
+    // rewind readout. 'none' survives only as a bisect switch. See the header
+    // and the strandConstraints.js header.
     this.constrain       = 'length';  // 'length' | 'none'
     // 8 rather than 4: measured cost is dominated by the broad-phase reject
     // over all guides, not by the solve on the few in contact (117µs/event at
     // 4 iterations vs 119µs at 8, 400 guides), while residual stretch under
     // contact drops from 1.5% to 0.07%. Iterations are effectively free here.
+    // EVEN by design — projectDistance alternates sweep direction, so an even
+    // count leaves no root-ward or tip-ward bias.
     this.iterations      = 8;         // PBD sweeps per sub-step
+    // Length-only sweeps run ONCE at the end of a stroke, over only the guides
+    // the stroke actually moved. This is what makes the invariant hold in
+    // practice rather than per sub-step — see _relaxStroke. 128 because
+    // convergence here is asymptotic, not sharp (0 → 6.28%, 8 → 3.01%,
+    // 32 → 0.34%, 128 → 0.0001% on the worst measured stroke), and because it
+    // is the cheapest knob in the tool by a wide margin: a handful of guides,
+    // once per stroke, versus every guide on every sub-step. Do not economise
+    // here; economise on `iterations`.
+    this.settleIterations = 128;
     this.reauthorTangent = false;
+
+    // Pass/fail threshold for lengthResidual() and diagnose(). Instrument
+    // state like everything else here — it is what you consider "preserved",
+    // not a property of the haircut.
+    this.lengthTol = LENGTH_TOL;
 
     this.hasBar = false;
 
@@ -285,6 +347,14 @@ export class CombTool {
     this._invMassFor = this.rootRamp;
     this._cap = { ax: 0, ay: 0, az: 0, bx: 0, by: 0, bz: 0, r: 0 };
     this._tie = [0, 0, 1];
+    // One guide's {T,B,N} frame + root + length, reused. Shared by the collide
+    // path and the stroke-end relaxation so the two cannot drift apart in how
+    // they interpret a guide's stored points — which would be a silent
+    // corruption rather than a visible bug.
+    this._frm = {
+      tx: 0, ty: 0, tz: 0, bx: 0, by: 0, bz: 0, nx: 0, ny: 0, nz: 0,
+      rx: 0, ry: 0, rz: 0, L: 1,
+    };
     this._motion = new THREE.Vector3();   // world travel dir of the last sub-step
 
     // --- visuals --------------------------------------------------------------
@@ -832,9 +902,92 @@ export class CombTool {
   /** Close a stroke and report the union of everything it moved. */
   _endStroke() {
     if (!this._inStroke) return;
+    // BEFORE reporting: pay off the stretch the stroke accumulated. This runs
+    // inside the undo unit deliberately — the relaxed pose is the pose the
+    // stroke produced, and undo should return you to before the whole gesture,
+    // not to a stretched intermediate nobody asked for.
+    this._relaxStroke();
     this._inStroke = false;
     this.onStrokeEnd?.([...this._strokeIds]);
     this._strokeIds.clear();
+  }
+
+  /**
+   * Pay off the stroke's accumulated stretch, once, on only what it touched.
+   *
+   * WHY THIS EXISTS AND THE SUB-STEP SOLVE IS NOT ENOUGH. Each sub-step ends on
+   * a collision projection by design (see strandConstraints.js), so each one
+   * leaves a little stretch behind rather than a little interpenetration. That
+   * is the right trade per sub-step and the wrong one across a stroke: dozens
+   * of sub-steps compound it, and the probe pass — which correctly refuses to
+   * touch guides the bar is not in contact with — means it is never collected.
+   *
+   * Whether that matters turns out to depend on where the drag ENDS, which is
+   * not something a user would ever think of as a modelling decision. Sweep the
+   * bar clear of the hair and the closing sub-steps relax it for free (0.04%
+   * worst segment). Release while the comb is still in the hair — an entirely
+   * normal way to finish — and nothing collects it: 6.28% worst segment, 4.16%
+   * total arc. `aT` is not arc length at 4.16%, and #6a's cut number inherits
+   * the error silently.
+   *
+   * 128 length sweeps here take the bad case to 0.0001% and cost nothing worth
+   * measuring: per STROKE over the handful of guides in `_strokeIds`, not per
+   * sub-step over all of them.
+   *
+   * THE CAPSULE IS PASSED IN. Pure length relaxation would happily pull a
+   * strand back inside a bar that is still parked in the hair — the exact
+   * artefact the interleave exists to prevent. Including the capsule at the
+   * bar's FINAL pose means a bar that has swept past contributes nothing (no
+   * contact, no correction, and length converges to machine precision), while a
+   * bar left resting keeps its contact honoured and simply converges less far.
+   * That parked-bar residual is real and `lengthResidual()` reports it.
+   */
+  _relaxStroke() {
+    if (this.constrain !== 'length') return;
+    if (!this._strokeIds.size) return;
+
+    this._prepMesh();
+
+    // The bar's final pose, mesh-local. A cleared or hidden bar contributes no
+    // capsule at all, which is the fully-converging case.
+    let cap = null;
+    if (this.hasBar) {
+      this._endpoints(this._curA, this._curB);
+      const a = this._a.copy(this._curA).applyMatrix4(this._invMesh);
+      const b = this._tmp.copy(this._curB).applyMatrix4(this._invMesh);
+      cap = this._cap;
+      cap.ax = a.x; cap.ay = a.y; cap.az = a.z;
+      cap.bx = b.x; cap.by = b.y; cap.bz = b.z;
+      cap.r  = this.radius / this._meshScale;
+    }
+
+    if (this._invMassFor !== this.rootRamp) {
+      buildInvMass(SHAPE_POINTS, this.rootRamp, this._invMass);
+      this._invMassFor = this.rootRamp;
+    }
+
+    const touched = [];
+    for (const id of this._strokeIds) {
+      const g = this.guides.guides.get(id);
+      // A guide can legitimately vanish between the edit and the stroke end
+      // once #7 makes deletion possible; skip rather than throw.
+      if (!g) continue;
+      const f = this._frame(g);
+      this._lift(g, f);
+      relaxStrand(this._local, {
+        restLen:    SHAPE_REST * (g.length || 1),
+        invMass:    this._invMass,
+        capsule:    cap,
+        tie:        this._tie,
+        iterations: this.settleIterations,
+      });
+      this._writeBack(g, f);
+      touched.push(id);
+    }
+
+    // The texture rows are stale until this lands — the relaxed pose is what
+    // history is about to capture, so the render must agree with it.
+    if (touched.length) this.onEdit?.(touched);
   }
 
   /**
@@ -849,10 +1002,42 @@ export class CombTool {
     this.onStrokeEnd?.([]);
   }
 
+  // --- the length invariant, exposed -----------------------------------------
+
+  /**
+   * Is `aT` still arc length?
+   *
+   * The check plan item 2 exists to ship. Everything that truncates a strand by
+   * parameter — the arc-length resampler, the scissors commit, the time
+   * rewind's `uPhase` remap — is correct only while every segment sits at
+   * SHAPE_REST, and that is not something you can see by looking at the render.
+   *
+   * Cheap enough to bind to a UI button or call after every stroke: measuring
+   * is O(guides · segments) with no frame build and no allocation per guide
+   * (see guideLengthAudit.js for why the normalised points can be measured
+   * directly). At 400 guides it is a few dozen microseconds.
+   *
+   * @param {object} [o]
+   * @param {boolean} [o.masked]  restrict to the current mask. Default false:
+   *        the invariant is a property of the GROOM, not of what the comb is
+   *        currently allowed to touch, and a drifted guide outside the mask
+   *        breaks the rewind readout just as thoroughly. Pass true when you
+   *        specifically want "did MY stroke hold".
+   * @param {number} [o.tol]
+   * @returns {object} see auditGuideLengths
+   */
+  lengthResidual({ masked = false, tol = this.lengthTol } = {}) {
+    return auditGuideLengths(this.guides, {
+      tol,
+      filter: masked ? (g) => this._inMask(g) : null,
+    });
+  }
+
   // --- ejection --------------------------------------------------------------
 
   /**
-   * Diagnostic: is edge collision actually running, and does this build see it?
+   * Diagnostic: is edge collision actually running, does this build see it, and
+   * is length actually being preserved?
    * Prints the module identity and probes one guide against the current pose.
    * Call from the console as `comb.diagnose()`.
    */
@@ -869,7 +1054,37 @@ export class CombTool {
     out.guidesInMask = this.mask
       ? [...this.guides.guides.values()].filter((g) => this._inMask(g)).length
       : this.guides.guides.size;
-    if (!this.hasBar) { console.table(out); return out; }
+
+    // --- the length invariant -------------------------------------------------
+    // Reported unconditionally, and BEFORE the bar checks, because it is the
+    // one number here that stays meaningful with no bar in the scene — it is a
+    // property of the groom, not of the tool. Everything downstream of item 2
+    // reads `aT` as arc length; this says whether that reading is currently
+    // true. Reported as a percentage because a raw 0.00034 does not tell you
+    // whether to worry.
+    const audit = this.lengthResidual();
+    out.lengthTolPct     = +(audit.tol * 100).toFixed(4);
+    out.worstSegmentPct  = +(audit.maxRel * 100).toFixed(4);
+    out.meanSegmentPct   = +(audit.meanRel * 100).toFixed(4);
+    out.worstArcPct      = +(audit.maxArcRel * 100).toFixed(4);
+    // The number a length readout would actually be wrong by, in mesh units.
+    // This is what #6e must compare against before it calls a target
+    // unreachable — drift and margin are the same kind of quantity.
+    out.worstArcAbs      = +audit.worstArcAbs.toFixed(5);
+    out.guidesOverTol    = audit.failing;
+    out.worstLengthGuide = audit.worstGuideId;
+    out.lengthInvariant  = audit.ok ? 'holds' : 'VIOLATED';
+    if (audit.malformed) out.malformedGuides = audit.malformed;
+
+    if (!this.hasBar) {
+      out.verdict = this.constrain !== 'length'
+        ? 'constrain is OFF — aT is not arc length and nothing downstream can trust it'
+        : audit.ok
+          ? 'no bar placed; length invariant holds'
+          : `no bar placed; LENGTH INVARIANT VIOLATED on ${audit.failing} guide(s)`;
+      console.table(out);
+      return out;
+    }
 
     this._endpoints(this._curA, this._curB);
     this._prepMesh();
@@ -881,7 +1096,6 @@ export class CombTool {
     };
     // Count edges currently overlapping the bar, WITHOUT moving anything.
     let edgesInside = 0, vertsInside = 0, nearest = Infinity, stretched = 0;
-    const probe = new Float64Array(SHAPE_POINTS * 3);
     for (const g of this.guides.guides.values()) {
       // Count what the stroke would actually see, not what the bar physically
       // overlaps — otherwise a masked comb reports overlaps it will never act
@@ -911,14 +1125,20 @@ export class CombTool {
         const d = Math.hypot(r.c1x - r.c2x, r.c1y - r.c2y, r.c1z - r.c2z);
         if (d < cap.r) edgesInside++;
       }
-      void probe;
     }
     out.edgesOverlappingBar = edgesInside;
     out.verticesOverlappingBar = vertsInside;
     out.nearestVertexDist = +nearest.toFixed(5);
     out.capsuleRadiusLocal = +cap.r.toFixed(5);
     out.stretchedGuides = stretched;
+    // The verdict is ordered by which failure invalidates the most. A broken
+    // length invariant outranks every collision question below it: those cost
+    // you a visual artefact, this costs you the rewind number.
     out.verdict = !out.edgeCollisionCompiled ? 'OLD BUILD: solveStrand missing'
+      : this.constrain !== 'length'
+        ? 'constrain is OFF — aT is not arc length and nothing downstream can trust it'
+      : !audit.ok
+        ? `LENGTH INVARIANT VIOLATED on ${audit.failing} guide(s), worst ${(audit.maxRel * 100).toFixed(3)}% — parameter truncation is wrong by ${audit.worstArcAbs.toFixed(4)} units`
       : edgesInside > 0 && vertsInside === 0
         ? 'edges overlap but no vertices — this is the case edge collision must handle'
         : edgesInside === 0 && this.mask
@@ -988,6 +1208,68 @@ export class CombTool {
     }
   }
 
+  // --- guide frame / lift / write-back ---------------------------------------
+  //
+  // Split out of _collideGuide so the stroke-end relaxation shares them
+  // verbatim. Two places interpreting a guide's stored points slightly
+  // differently would not crash — it would just corrupt the groom a fraction of
+  // a percent at a time.
+
+  /** The guide's {T,B,N} frame, root and length. T re-orthogonalised against N,
+   *  matching guides.js. Returns the shared scratch object. */
+  _frame(g) {
+    const f = this._frm;
+    const [nx, ny, nz] = g.normal;
+    let [tx, ty, tz] = g.tangent;
+    const dd = tx * nx + ty * ny + tz * nz;
+    tx -= nx * dd; ty -= ny * dd; tz -= nz * dd;
+    const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    f.tx = tx; f.ty = ty; f.tz = tz;
+    f.nx = nx; f.ny = ny; f.nz = nz;
+    f.bx = ny * tz - nz * ty;
+    f.by = nz * tx - nx * tz;
+    f.bz = nx * ty - ny * tx;
+    f.rx = g.root[0]; f.ry = g.root[1]; f.rz = g.root[2];
+    f.L  = g.length || 1;
+    return f;
+  }
+
+  /** Normalised guide points → mesh-local `_local`. */
+  _lift(g, f) {
+    const p = g.points, loc = this._local, L = f.L;
+    for (let k = 0; k < SHAPE_POINTS; k++) {
+      const i = k * 3;
+      const lx = p[i], ly = p[i + 1], lz = p[i + 2];
+      loc[i]     = f.rx + (f.tx * lx + f.bx * ly + f.nx * lz) * L;
+      loc[i + 1] = f.ry + (f.ty * lx + f.by * ly + f.ny * lz) * L;
+      loc[i + 2] = f.rz + (f.tz * lx + f.bz * ly + f.nz * lz) * L;
+    }
+  }
+
+  /** Mesh-local `_local` → normalised guide points. Point 0 is the root and is
+   *  never written: it is pinned, and rewriting it would let float error walk
+   *  the strand off the scalp over a long session. */
+  _writeBack(g, f) {
+    const p = g.points, loc = this._local, inv = 1 / f.L;
+    for (let k = 1; k < SHAPE_POINTS; k++) {
+      const i = k * 3;
+      const vx = loc[i] - f.rx, vy = loc[i + 1] - f.ry, vz = loc[i + 2] - f.rz;
+      p[i]     = (vx * f.tx + vy * f.ty + vz * f.tz) * inv;
+      p[i + 1] = (vx * f.bx + vy * f.by + vz * f.bz) * inv;
+      // Scalp guard. Still a per-guide tangent half-space, still wants a real
+      // head SDF pushout once hair is long enough to drape — three-mesh-bvh is
+      // the right tool for that, and it is the one dependency worth taking.
+      //
+      // NOTE this clamp is a position edit OUTSIDE the constraint solve, so it
+      // can leave a near-root segment off rest length. That is the one known
+      // leak in the length invariant; lengthResidual() measures it rather than
+      // hiding it, and moving the head collision inside the solve loop (#10) is
+      // what closes it.
+      const zn = (vx * f.nx + vy * f.ny + vz * f.nz) * inv;
+      p[i + 2] = zn < 0 ? 0 : zn;
+    }
+  }
+
   /**
    * Collide one guide against the capsule. Returns true if anything moved.
    *
@@ -997,6 +1279,12 @@ export class CombTool {
    *
    * Reject: the root's distance to the axis segment against (R + length).
    * Sound because the capsule is finite in every direction.
+   *
+   * The reject's `reach = cap.r + g.length` is itself an assertion that the
+   * strand is no longer than `g.length`, which is true exactly while the length
+   * invariant holds. A stretched strand is invisible to the broad phase and
+   * looks identical to "collision is broken" — `diagnose()` counts those
+   * separately (`stretchedGuides`) for that reason.
    */
   _collideGuide(g, a, cap) {
     // --- reject ---------------------------------------------------------------
@@ -1009,31 +1297,12 @@ export class CombTool {
     const reach = cap.r + g.length;
     if (this._r.lengthSq() > reach * reach) return false;
 
-    // --- guide frame (T re-orthogonalised against N, matching guides.js) -------
-    const [nx, ny, nz] = g.normal;
-    let [tx, ty, tz] = g.tangent;
-    const dd = tx * nx + ty * ny + tz * nz;
-    tx -= nx * dd; ty -= ny * dd; tz -= nz * dd;
-    const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
-    const bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
-
-    const p    = g.points;
-    const L    = g.length || 1;
-    const loc  = this._local;
-    const rx = g.root[0], ry = g.root[1], rz = g.root[2];
-
-    // --- lift into mesh-local -------------------------------------------------
-    for (let k = 0; k < SHAPE_POINTS; k++) {
-      const i = k * 3;
-      const lx = p[i], ly = p[i + 1], lz = p[i + 2];
-      loc[i]     = rx + (tx * lx + bx * ly + nx * lz) * L;
-      loc[i + 1] = ry + (ty * lx + by * ly + ny * lz) * L;
-      loc[i + 2] = rz + (tz * lx + bz * ly + nz * lz) * L;
-    }
+    const f = this._frame(g);
+    this._lift(g, f);
 
     // --- solve ----------------------------------------------------------------
-    const hit = solveStrand(loc, {
-      restLen:       SHAPE_REST * L,
+    const hit = solveStrand(this._local, {
+      restLen:       SHAPE_REST * f.L,
       invMass:       this._invMass,
       capsule:       cap,
       tie:           this._tie,
@@ -1042,19 +1311,7 @@ export class CombTool {
     });
     if (hit === 0) return false;
 
-    // --- write back to the normalised frame -----------------------------------
-    const inv = 1 / L;
-    for (let k = 1; k < SHAPE_POINTS; k++) {
-      const i = k * 3;
-      const vx = loc[i] - rx, vy = loc[i + 1] - ry, vz = loc[i + 2] - rz;
-      p[i]     = (vx * tx + vy * ty + vz * tz) * inv;
-      p[i + 1] = (vx * bx + vy * by + vz * bz) * inv;
-      // Scalp guard. Still a per-guide tangent half-space, still wants a real
-      // head SDF pushout once hair is long enough to drape — three-mesh-bvh is
-      // the right tool for that, and it is the one dependency worth taking.
-      const zn = (vx * nx + vy * ny + vz * nz) * inv;
-      p[i + 2] = zn < 0 ? 0 : zn;
-    }
+    this._writeBack(g, f);
 
     // --- flow field -----------------------------------------------------------
     // Off by default: g.points are expressed in this frame, so rotating the

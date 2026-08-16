@@ -16,12 +16,28 @@
  *  - Migration: seedFromGroom() drops one guide per hair-bearing facet at its
  *    centroid, initialised from that facet's existing v3 `shape`, so a v3
  *    groom renders identically under the guide model.
+ *
+ * LOADING IS CHECKED, BECAUSE A BAD GUIDE DOES NOT THROW ANYWHERE ELSE.
+ *
+ * `points` is a flat SHAPE_POINTS*3 buffer that every consumer indexes by hand
+ * — the texture row writer, the comb's lift into mesh-local, the length audit.
+ * A short array does not fail: it reads `undefined`, arithmetic turns that into
+ * NaN, and the strand quietly disappears from a render of two hundred thousand
+ * others. Nothing logs. `fromJSON` therefore checks the length rather than
+ * trusting it, and names the guide when it doesn't match. Same for a zero
+ * normal, which yields a degenerate frame and a strand pointing nowhere.
+ *
+ * The one field that is DERIVED rather than rejected is `tangent`: `add()`
+ * already seeds it from the normal via shapeBasis when a caller omits it, so a
+ * file that omits it is under-specified, not corrupt, and gets the same
+ * treatment. Everything else is reject-don't-guess — see schemaGuards.js.
  */
 
 import * as THREE from 'three';
 import {
   SHAPE_POINTS, SHAPE_REST, straightShape, cloneShape, shapeBasis,
 } from './strandShape.js';
+import { fail, number, numberOr, integerOr, direction, vec3, floatArray } from './schemaGuards.js';
 
 /**
  * @typedef {Object} Guide
@@ -36,6 +52,9 @@ import {
 
 export const GUIDE_SCHEMA_VERSION = 4;
 
+/** Default when a file omits `length` entirely. Matches `add()`. */
+const DEFAULT_LENGTH = 0.1;
+
 export class GuideStore {
   constructor() {
     /** @type {Map<number, Guide>} */
@@ -46,7 +65,7 @@ export class GuideStore {
   get count() { return this.guides.size; }
 
   /** Add a guide; fills defaults; returns its id. */
-  add({ facetId = -1, root, normal, tangent = null, points = null, length = 0.1 }) {
+  add({ facetId = -1, root, normal, tangent = null, points = null, length = DEFAULT_LENGTH }) {
     const id = this._nextId++;
     const [nx, ny, nz] = normal;
     let t = tangent;
@@ -131,15 +150,51 @@ export class GuideStore {
   }
 
   static fromJSON(arr) {
+    if (arr === undefined || arr === null) arr = [];
+    if (!Array.isArray(arr)) fail('guides must be an array');
+
     const store = new GuideStore();
-    for (const g of arr ?? []) {
-      store.guides.set(g.id, {
-        id: g.id, facetId: g.facetId ?? -1,
-        root: [...g.root], normal: [...g.normal], tangent: [...g.tangent],
-        points: cloneShape(g.points), length: g.length ?? 0.1,
+    arr.forEach((g, i) => {
+      if (g == null || typeof g !== 'object') fail(`guides[${i}] must be an object`);
+
+      // The id is the key everything else refers to — history patches, the
+      // renderer's row map, the comb's stroke set — so a missing or duplicated
+      // one is not a field to default, it is a broken file.
+      const id = number(g.id, `guides[${i}].id`);
+      if (!Number.isInteger(id)) fail(`guides[${i}].id must be an integer, got ${id}`);
+      if (store.guides.has(id)) fail(`guides[${i}] repeats id ${id}`);
+
+      const normal = direction(g.normal, `guides[${i}].normal`);
+
+      // Under-specified rather than corrupt: `add()` seeds the tangent from
+      // the normal when a caller omits it, so a file may omit it too. A
+      // tangent that is PRESENT and unusable still throws.
+      let tangent;
+      if (g.tangent === undefined || g.tangent === null) {
+        const b = shapeBasis(normal[0], normal[1], normal[2]);
+        tangent = [b.tx, b.ty, b.tz];
+      } else {
+        tangent = direction(g.tangent, `guides[${i}].tangent`);
+      }
+
+      const length = numberOr(g.length, DEFAULT_LENGTH, `guides[${i}].length`);
+      if (length <= 0) fail(`guides[${i}].length must be positive, got ${length}`);
+
+      store.guides.set(id, {
+        id,
+        facetId: integerOr(g.facetId, -1, `guides[${i}].facetId`),
+        root:    vec3(g.root, `guides[${i}].root`),
+        normal,
+        tangent,
+        // THE LENGTH CHECK THAT MATTERS. See the header: a short polyline is
+        // silent everywhere downstream.
+        points: g.points === undefined || g.points === null
+          ? straightShape()
+          : floatArray(g.points, SHAPE_POINTS * 3, `guides[${i}].points`),
+        length,
       });
-      store._nextId = Math.max(store._nextId, g.id + 1);
-    }
+      store._nextId = Math.max(store._nextId, id + 1);
+    });
     return store;
   }
 

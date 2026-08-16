@@ -33,6 +33,16 @@
  * which phase through the comb more easily. Length preservation is what makes
  * the collision hold, so they are interleaved rather than run in sequence.
  *
+ * WHY THE RESIDUAL IS PART OF THE FEATURE, NOT A DEBUG EXTRA. `segmentResidual`
+ * and `assertSegmentLengths` below exist because inextensibility is not a thing
+ * you can see. Everything downstream that reads `aT` as ARC LENGTH — the
+ * arc-length resampler, the scissors commit, the time rewind's `uPhase` remap —
+ * is only correct while |p[k+1] − p[k]| = restLen actually holds, and when it
+ * stops holding the failure is silent: the render still looks like hair, the
+ * rewound preview is just wrong by however far the strands have drifted. So the
+ * invariant is measurable from the outside, and callers CHECK it rather than
+ * assuming it. See combTool.lengthResidual() and guideLengthAudit.js.
+ *
  * Everything here is space-agnostic and operates in place on flat
  * [x,y,z, ...] arrays. Pass restLen in whatever space the points live in. The
  * interactive path runs in MESH-LOCAL space (that is where the comb is);
@@ -160,6 +170,16 @@ function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
  * Gauss-Seidel (reading updated positions within the sweep) rather than Jacobi
  * because it converges roughly twice as fast per iteration on a chain, and the
  * chain is short enough that the serial dependency costs nothing.
+ *
+ * ROOT→TIP, and MEASURED that way rather than assumed. Alternating the sweep
+ * direction is the textbook cure for Gauss-Seidel's reading-order bias and was
+ * tried here; it converges strictly SLOWER on this chain at every iteration
+ * count and every rootRamp (20% uniform stretch, 8 sweeps: 14.5% residual
+ * forward, 16.2% alternating, 19.4% backward; ramp 1). The pinned root is why —
+ * it is a fixed boundary condition, and sweeping away from a fixed end
+ * propagates the correction with the sweep instead of against it. The bias
+ * alternation would remove is also not the whip: the whip came from FABRIK
+ * re-laying the chain rigidly, which inverse-mass weighting already fixes.
  */
 export function projectDistance(points, restLen, invMass) {
   const count = points.length / 3;
@@ -287,6 +307,20 @@ export function projectCapsule(points, invMass, cap, tie = UP) {
  * — the loop always ends on collision, so it is length that gives, not
  * interpenetration.
  *
+ * WHERE THE STROKE ENDS DECIDES WHICH REGIME YOU GET, and that is the part the
+ * table above does not show. Sweep the bar fully PAST the strand and the last
+ * few sub-steps have shrinking penetration and a free length solve, so the
+ * strand relaxes on its own: 0.04% worst segment across a synthetic stroke.
+ * Stop the bar at the far edge of the hair — releasing the drag while the comb
+ * is still amongst it, which is a normal way to finish — and the accumulated
+ * stretch is never collected: 6.3% worst segment, 4.2% total arc. Same solver,
+ * same settings, two orders of magnitude apart, decided by where you let go.
+ *
+ * A 4.2% arc error is not a cosmetic difference. It is the difference between
+ * `aT` being arc length and not, which is #6a's cut number being right or
+ * wrong. `relaxStrand` below collects it, ONCE per stroke, on only the guides
+ * that moved — see CombTool._relaxStroke.
+ *
  * The probe pass matters as much as the solve: a guide the comb never touched
  * must not be length-solved either, or the distance sweep would quietly relax
  * the shape of every guide on every sub-step, including ones nobody combed.
@@ -311,4 +345,158 @@ export function solveStrand(points, {
     projectCapsule(points, invMass, capsule, tie);
   }
   return hit;
+}
+
+/**
+ * UNCONDITIONAL length relaxation for a strand you already know moved.
+ *
+ * The difference from solveStrand is the probe. solveStrand refuses to touch a
+ * strand the capsule is not currently in contact with, and that refusal is
+ * correct per sub-step — without it, every distance sweep would quietly relax
+ * every guide in the groom on every gizmo event, including ones nobody combed.
+ * But it also means the stretch a stroke leaves behind is never cleaned up: by
+ * the time the bar has swept past, the probe finds nothing and the residual is
+ * frozen in.
+ *
+ * That matters because a stroke that ENDS in contact never gets the free
+ * relaxation a stroke that sweeps past gets for nothing — 6.3% worst segment
+ * and 4.2% total arc, versus 0.04%, for the same solver and the same settings.
+ *
+ * So: relax ONCE at the stroke boundary, on ONLY the ids the stroke reported.
+ * Nothing untouched is read or written. Measured on a synthetic stroke that
+ * stops in the hair (the bad regime), worst segment / total arc:
+ *
+ *   relaxation sweeps      0        8       32      128      512
+ *   worst segment      6.276%   3.009%   0.342%  0.0001%   0.000%
+ *   total arc          4.159%   2.031%   0.234%  0.0000%   0.000%
+ *
+ * Convergence is asymptotic rather than sharp, which is why the default is
+ * generous: this is a handful of guides once per stroke, so 128 sweeps is
+ * cheaper than a single sub-step over the whole groom. Do not economise here —
+ * the expensive knob is `iterations`, not this one.
+ *
+ * `capsule` is optional and should be the bar's FINAL pose. Pass it and the
+ * relaxation cannot pull the strand back inside a bar that is still parked in
+ * the hair; omit it (bar cleared, or you know it has swept past) and this is
+ * pure inextensibility, which converges to machine precision. A genuinely
+ * parked bar will NOT converge to zero — collision and length are in real
+ * conflict there — and that residual is a true report of the state, not a
+ * failure of this routine.
+ *
+ * @returns {number} the sweep count; there is nothing else meaningful to say.
+ */
+export function relaxStrand(points, {
+  restLen, invMass, capsule = null, tie = UP, iterations = 128,
+}) {
+  for (let it = 0; it < iterations; it++) {
+    projectDistance(points, restLen, invMass);
+    if (capsule) projectCapsule(points, invMass, capsule, tie);
+  }
+  return iterations;
+}
+
+// ---------------------------------------------------------------------------
+// The invariant, measured
+//
+// Plan item 2 ships the constraint AND a way to check it, because the things
+// that depend on it (#4 resampler, #5 scissors commit, #6 uPhase remap) all
+// read the strand parameter `aT` as ARC LENGTH, and that reading is only valid
+// while every segment is at rest length. When it stops being valid nothing
+// looks wrong — the hair still renders, the rewound length is just a lie. So:
+// measure, don't assume.
+
+/**
+ * Per-segment length error for one strand, in the units `points` lives in.
+ *
+ * Relative figures are against `restLen`, so they are comparable across
+ * strands of different length and across spaces (normalised vs mesh-local).
+ *
+ * `arcRel` is the headline number for #4/#5/#6: it is the error in TOTAL arc
+ * length, i.e. exactly how wrong a parameter-based truncation would be. The
+ * per-segment `maxRel` can be larger than `arcRel` when one long segment is
+ * paid for by a short one — that cancellation is real for total length but not
+ * for where along the strand a given `aT` actually lands, which is why both
+ * are reported.
+ *
+ * @param {number[]|Float32Array} points  flat [x,y,z,...]
+ * @param {number} restLen                target length of every segment
+ * @param {object} [out]                  reused result object; no allocation
+ */
+export function segmentResidual(points, restLen, out = {}) {
+  const count = points.length / 3;
+  const segs  = count - 1;
+
+  out.segments = segs;
+  out.restLen  = restLen;
+
+  if (segs <= 0 || !(restLen > 0)) {
+    out.maxAbs = 0; out.maxRel = 0; out.rmsRel = 0; out.worstSegment = -1;
+    out.arcLen = 0; out.restArc = 0; out.arcAbs = 0; out.arcRel = 0;
+    out.minRel = 0; out.maxSegRel = 0;
+    return out;
+  }
+
+  let maxAbs = 0, worst = -1, sum2 = 0, arc = 0;
+  let minRel = Infinity, maxSegRel = -Infinity;
+
+  for (let k = 0; k < segs; k++) {
+    const i = k * 3, j = (k + 1) * 3;
+    const len = Math.hypot(
+      points[j]     - points[i],
+      points[j + 1] - points[i + 1],
+      points[j + 2] - points[i + 2],
+    );
+    arc += len;
+
+    const abs = len - restLen;
+    const rel = abs / restLen;
+    if (Math.abs(abs) > maxAbs) { maxAbs = Math.abs(abs); worst = k; }
+    if (rel < minRel)    minRel = rel;
+    if (rel > maxSegRel) maxSegRel = rel;
+    sum2 += rel * rel;
+  }
+
+  const restArc = restLen * segs;
+
+  out.maxAbs       = maxAbs;                  // worst |segment − rest|
+  out.maxRel       = maxAbs / restLen;        // ...as a fraction of rest
+  out.rmsRel       = Math.sqrt(sum2 / segs);
+  out.worstSegment = worst;
+  out.minRel       = minRel;                  // most-compressed segment
+  out.maxSegRel    = maxSegRel;               // most-stretched segment
+  out.arcLen       = arc;
+  out.restArc      = restArc;
+  out.arcAbs       = arc - restArc;
+  out.arcRel       = (arc - restArc) / restArc;
+  return out;
+}
+
+/**
+ * Throwing form, for tests and for the downstream commit paths that are only
+ * correct under the invariant.
+ *
+ * Deliberately a hard throw rather than a console warning: a silently-wrong
+ * rewind number is worse than a crash, because someone cuts hair by it. Call
+ * it at COMMIT boundaries (a resample, a cut, a measurement readout), never
+ * per frame — measuring is O(M) but throwing mid-drag would be useless noise.
+ *
+ * @param {number[]|Float32Array} points
+ * @param {number} restLen
+ * @param {number} [tol]    max allowed |segment − rest| / rest. 1e-3 is a
+ *                          tenth of the residual 8 iterations leaves under
+ *                          active contact, and far above float noise.
+ * @param {string} [label]  what is being checked, for the message
+ * @returns {object} the residual, when it passes
+ */
+export function assertSegmentLengths(points, restLen, tol = 1e-3, label = 'strand') {
+  const r = segmentResidual(points, restLen);
+  if (r.maxRel > tol) {
+    throw new Error(
+      `${label}: segment length invariant violated — worst segment ${r.worstSegment} ` +
+      `is off by ${(r.maxRel * 100).toFixed(3)}% (tol ${(tol * 100).toFixed(3)}%), ` +
+      `arc length off by ${(r.arcRel * 100).toFixed(3)}%. ` +
+      `aT is not arc length here; any parameter-based truncation is wrong by this much.`,
+    );
+  }
+  return r;
 }

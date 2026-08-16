@@ -114,6 +114,29 @@
  *                        source than the old cursor velocity — worth revisiting
  *                        once the movement reads correctly.
  *
+ * THE PATCH MASK confines the comb to a set of facets. `mask` is a Set of
+ * facet ids, or null for "comb everywhere". Three things to know about it:
+ *
+ *   IT IS A COPY, NOT A LIVE VIEW of raycast.selection. The selection is
+ *   documented as purely transient and something else clearing it would
+ *   silently unmask mid-session, which is the worst possible failure for a
+ *   tool whose whole job is to NOT touch the hair you didn't ask it to. You
+ *   set the mask once, deliberately, and it stays until you change it.
+ *
+ *   IT IS INSTRUMENT STATE, so it sits outside history alongside radius and
+ *   strength. Undoing a stroke should not resize your comb and should not
+ *   silently re-open the region it was confined to. Facet ids come from the
+ *   mesh, not the groom, so a mask also survives a groom load unharmed.
+ *
+ *   THE SHADER PUSHOUT GOES OFF WHILE MASKED. uCombA/B/R is one global
+ *   capsule with no per-strand mask channel, so it would clamp unmasked hair
+ *   out of the bar even though the solve left that hair alone — visible
+ *   parting in a region you explicitly excluded. `_pushPose` therefore
+ *   publishes a null pose whenever a mask is set, and masked strands lose the
+ *   cosmetic clamp that hides guide-blend dip (see _pushPose). That is the
+ *   honest trade for now; the real fix is a per-strand mask lookup, and the
+ *   machinery for it already exists — gpuHairR3 keeps `_iFacet` per strand.
+ *
  * THE STROKE IS THE UNDO UNIT. `onEdit` fires many times per gizmo drag and is
  * the wrong granularity for history — nobody wants to press undo forty times
  * to reverse one sweep. `onStrokeBegin` / `onStrokeEnd` bracket the whole
@@ -200,6 +223,12 @@ export class CombTool {
     this.reauthorTangent = false;
 
     this.hasBar = false;
+
+    // --- patch mask -----------------------------------------------------------
+    // Set<facetId> the comb is confined to, or null for everywhere. Owned copy;
+    // see setMask and the header. Not in history — instrument, not haircut.
+    /** @type {Set<number>|null} */
+    this.mask = null;
 
     // --- placement state ------------------------------------------------------
     this._placing = false;
@@ -355,6 +384,51 @@ export class CombTool {
     this.object.visible = false;
     this._pushPose();        // null pose — releases the shader-side pushout
     return true;
+  }
+
+  // --- patch mask ------------------------------------------------------------
+
+  /**
+   * Confine the comb to a set of facets. Guides rooted anywhere else are
+   * skipped in the broad phase and never enter the solve, so they are not
+   * merely restored afterwards — they are never read or written at all, and
+   * cannot appear in `_editedIds` or in the stroke's history patch.
+   *
+   * `ids` is COPIED. Passing raycast.selection is the normal call and it is
+   * explicitly safe to clear or rebuild that selection afterwards.
+   *
+   * An empty set means the same as null: unmasked. There is no such thing as
+   * a mask that excludes everything, because a comb that can never touch
+   * anything is a broken tool rather than a configured one, and the two are
+   * indistinguishable from the panel.
+   *
+   * @param {Iterable<number>|null} ids
+   * @returns {number} facets now masked to; 0 means unmasked.
+   */
+  setMask(ids) {
+    const next = ids ? new Set(ids) : null;
+    this.mask = next && next.size ? next : null;
+    // The render-side pushout is all-or-nothing and has to follow the mask;
+    // see _pushPose. Cheap — it publishes a uniform, it does not rebind.
+    this._pushPose();
+    return this.mask ? this.mask.size : 0;
+  }
+
+  /** Comb everywhere again. */
+  clearMask() { return this.setMask(null); }
+
+  /** Facets the comb is confined to; 0 means unmasked. */
+  get maskSize() { return this.mask ? this.mask.size : 0; }
+
+  /** True if this guide is in scope for the current mask. */
+  _inMask(g) {
+    if (!this.mask) return true;
+    // facetId -1 is a free guide with no facet, so it can never be named by a
+    // facet mask. Excluding it is the conservative reading of "confine me to
+    // this region" — but it also means a masked comb ignores free guides
+    // entirely, which the guide add/remove work has to revisit once free
+    // guides can actually exist. Today seedFromGroom always sets a facetId.
+    return this.mask.has(g.facetId);
   }
 
   /** True while waiting for the two placement clicks. */
@@ -635,10 +709,19 @@ export class CombTool {
    * out of the same capsule. Cosmetic only; guides remain authoritative.
    *
    * radius 0 means "no bar", which the shader treats as disabled.
+   *
+   * A MASK DISABLES IT. The uniform is one capsule for the whole draw call and
+   * carries no per-strand mask channel, so leaving it on would clamp strands
+   * the solve deliberately did not touch — the bar would visibly part hair
+   * outside the patch while claiming to be confined to it. A cosmetic clamp
+   * that contradicts the tool's stated scope is worse than no clamp, so it
+   * goes off and masked strands fall back to pure guide reconstruction. Making
+   * this per-strand is a real fix and gpuHairR3 already carries `_iFacet`; it
+   * is not this change.
    */
   _pushPose() {
     if (!this.onPose) return;
-    if (!this.hasBar || !this.object.visible) { this.onPose(null); return; }
+    if (!this.hasBar || !this.object.visible || this.mask) { this.onPose(null); return; }
     this.mesh.updateMatrixWorld();
     this._invMesh.copy(this.mesh.matrixWorld).invert();
     const scale = this.mesh.getWorldScale(this._scale).x || 1;
@@ -780,6 +863,12 @@ export class CombTool {
     out.iterations = this.iterations;
     out.radius = this.radius;
     out.guides = this.guides.guides.size;
+    // A mask is the newest way for the comb to correctly do nothing, which
+    // looks identical to the old ways of incorrectly doing nothing. Say so.
+    out.maskedToFacets = this.maskSize || 'none (combs everywhere)';
+    out.guidesInMask = this.mask
+      ? [...this.guides.guides.values()].filter((g) => this._inMask(g)).length
+      : this.guides.guides.size;
     if (!this.hasBar) { console.table(out); return out; }
 
     this._endpoints(this._curA, this._curB);
@@ -794,6 +883,10 @@ export class CombTool {
     let edgesInside = 0, vertsInside = 0, nearest = Infinity, stretched = 0;
     const probe = new Float64Array(SHAPE_POINTS * 3);
     for (const g of this.guides.guides.values()) {
+      // Count what the stroke would actually see, not what the bar physically
+      // overlaps — otherwise a masked comb reports overlaps it will never act
+      // on and the verdict below points at the wrong culprit.
+      if (!this._inMask(g)) continue;
       const P = [];
       for (let k = 0; k < SHAPE_POINTS; k++) {
         P.push(this.guides.pointWorldLocal(g, k, new THREE.Vector3()).clone());
@@ -828,6 +921,8 @@ export class CombTool {
     out.verdict = !out.edgeCollisionCompiled ? 'OLD BUILD: solveStrand missing'
       : edgesInside > 0 && vertsInside === 0
         ? 'edges overlap but no vertices — this is the case edge collision must handle'
+        : edgesInside === 0 && this.mask
+          ? 'bar touches no strand INSIDE THE MASK — it may well be touching hair outside it'
         : edgesInside === 0 ? 'bar is not touching any strand at this pose'
         : 'bar overlaps vertices too';
     console.table(out);
@@ -882,7 +977,13 @@ export class CombTool {
       this._invMassFor = this.rootRamp;
     }
 
+    // The mask is tested BEFORE the geometric reject, not after. A Set.has is
+    // cheaper than the root-to-axis distance the reject computes, so a masked
+    // stroke costs strictly less than an unmasked one — the broad phase, which
+    // the header notes is what dominates this tool, shrinks with the mask.
+    const mask = this.mask;
     for (const g of this.guides.guides.values()) {
+      if (mask && !mask.has(g.facetId)) continue;
       if (this._collideGuide(g, a, cap)) this._editedIds.add(g.id);
     }
   }

@@ -305,6 +305,39 @@ export function buildUI({
     cf.add(place, 'remove').name('Delete comb');
     cf.add(place, 'settle').name('Settle at current pose');
 
+    // --- Patch mask ---------------------------------------------------------
+    // Top level, not buried in the sub-folder, and with a permanently visible
+    // status line. A mask makes the comb correctly refuse to move hair, which
+    // from the viewport is indistinguishable from a broken comb — so the one
+    // thing this must never be is quiet. Same reasoning as the bar's own
+    // status line above.
+    //
+    // The mask is taken from the CURRENT selection at the moment you press the
+    // button, and copied (see CombTool.setMask). Selecting needs the pick
+    // tool, so the flow is: pick → select facets → comb → Mask to selection.
+    const mask = {
+      get status() {
+        const n = comb.maskSize;
+        return n ? `${n} facet(s) — pushout off` : 'off — combs everywhere';
+      },
+      set: () => {
+        if (raycast.selection.size === 0) {
+          dbg.log('comb: nothing selected — pick facets first, then mask');
+          return;
+        }
+        const n = comb.setMask(raycast.selection);
+        dbg.log(`comb: masked to ${n} facet(s) — render pushout off while masked`);
+      },
+      clear: () => {
+        if (comb.maskSize) dbg.log('comb: mask cleared — combs everywhere again');
+        comb.clearMask();
+      },
+    };
+
+    cf.add(mask, 'status').name('patch mask').disable().listen();
+    cf.add(mask, 'set').name('Mask to selection');
+    cf.add(mask, 'clear').name('Clear mask');
+
     // --- Bar shape and gizmo ------------------------------------------------
     // Sub-folder, collapsed. Nine controllers of instrument tuning sat between
     // the comb buttons and everything below them; the four buttons above are

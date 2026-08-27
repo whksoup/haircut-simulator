@@ -6,17 +6,7 @@
  * Phase 1.5: Groom/HairStore merge, catalogue at load time.
  * Phase 2  : strand generation (CPU StrandGen).
  * GPU rev3 : renderer factory behind one interface, parented under the head.
- * R2       : per-facet SHAPE polyline replaces the comb bend vector.
- * R3       : GUIDE STRANDS. A few hundred authored curves; every render strand
- *            blends its 3 nearest. Facets decide where hair grows, guides
- *            decide what shape it is. The comb brush edits guides directly.
- * R3.1     : the work plane is gone. The comb is a finite capsule bar placed
- *            by two clicks on the head and dragged with a gizmo — bounded in
- *            every direction, so it can no longer reach through the skull.
- * R3.2     : SCISSORS. A second capsule — a blade — that truncates guides
- *            instead of displacing them. The comb authors how the target
- *            hangs; the scissors authors how long it is. Those are the two
- *            halves the time rewind will later separate.
+
  *
  * Two things this file owns that nothing else can:
  *
@@ -50,6 +40,7 @@ import { SeamOverlay }          from './seamOverlay.js';
 import { SeamTool }             from './seamTool.js';
 import { seedSeamsFromCreases } from './seams.js';
 import { createStrandRenderer } from './renderer.js';
+import { applyDefaultGroom }    from './defaultGroom.js';
 
 async function main() {
   const container = document.getElementById('app');
@@ -746,12 +737,36 @@ async function main() {
     refreshStats();
   });
 
-  // Initial build (empty groom → nothing drawn, but rows and uniforms are set).
+  // --- Initial build --------------------------------------------------------
+  //
+  // The greeting groom lands HERE and not one line earlier, because this is the
+  // first point where all four things it needs exist: the catalogue (to check
+  // its facets are real), the renderer and guideDebug (to be told the model
+  // moved), and `log` (bound by buildUI, so the outcome reaches the console
+  // panel rather than only devtools).
+  //
+  // It is deliberately NOT routed through buildUI's onLoad closure even though
+  // the tail is identical. onLoad ends in `history.clear()` and logs "history
+  // cleared (loaded groom)", which is true of a user opening a file and a lie
+  // here — there is no history yet to clear, and the line would be the first
+  // thing every visitor reads. The default groom is the baseline, not an edit
+  // to it.
+  const def = applyDefaultGroom({ groom, catalogue, isPlaceholder });
+  log(def.applied
+    ? `default groom loaded (${def.reason})`
+    : `default groom skipped — ${def.reason}`);
+
+  // No-ops when the default applied (it already carries guides), and still does
+  // the v3→v4 conversion when it didn't.
   seedGuidesIfEmpty();
   renderer.rebuild();
   guideDebug.sync();
   seamOverlay?.refresh();
   refreshStats();
+  // buildUI read groom.globals before the default landed, so the density and
+  // length sliders are still sitting at the `new Groom()` values. Same call
+  // onLoad makes, for the same reason.
+  gui?.controllersRecursive().forEach((c) => c.updateDisplay());
 
   // --- Expose for console debugging ----------------------------------------
   // WHY THIS IS NOT Object.assign(window, ...).

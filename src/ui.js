@@ -84,7 +84,7 @@ import { Groom } from './groom.js';
  * @param {Function} [opts.cutAtBlade]              () => number
  * @param {import('./combTool.js').CombTool} [opts.comb]
  * @param {import('./scissorsTool.js').ScissorsTool} [opts.scissors]
- * @param {import('./guideDebugView.js').GuideDebugView} [opts.guideDebug]
+ * @param {import('./GuideDebugView.js').GuideDebugView} [opts.guideDebug]
  * @param {import('./history.js').History} [opts.history]
  * @param {import('./seamOverlay.js').SeamOverlay} [opts.seamOverlay]
  * @param {import('./seamTool.js').SeamTool} [opts.seamTool]
@@ -108,7 +108,7 @@ export function buildUI({
   addHairToSelection, removeHairFromSelection,
 }) {
   const gui = new GUI({ title: 'Groom' });
-  gui.domElement.style.transform       = 'scale(0.3)';
+  gui.domElement.style.transform       = 'scale(0.6)';
   gui.domElement.style.transformOrigin = 'top right';
   // --- cross-folder sync closures -------------------------------------------
   // DECLARED FIRST, DELIBERATELY. The Seams folder assigns these; main.js's

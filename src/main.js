@@ -35,7 +35,7 @@ import { buildUI }              from './ui.js';
 import { Raycast }              from './raycast.js';
 import { CombTool }             from './combTool.js';
 import { ScissorsTool }         from './scissorsTool.js';
-import { GuideDebugView } from './guideDebugView.js';
+import { GuideDebugView } from './GuideDebugView.js';
 import { SeamOverlay }          from './seamOverlay.js';
 import { SeamTool }             from './seamTool.js';
 import { seedSeamsFromCreases } from './seams.js';

@@ -108,7 +108,8 @@ export function buildUI({
   addHairToSelection, removeHairFromSelection,
 }) {
   const gui = new GUI({ title: 'Groom' });
-
+  gui.domElement.style.transform       = 'scale(0.3)';
+  gui.domElement.style.transformOrigin = 'top right';
   // --- cross-folder sync closures -------------------------------------------
   // DECLARED FIRST, DELIBERATELY. The Seams folder assigns these; main.js's
   // setActiveTool and the history restore path call them through setSyncHooks.
@@ -1038,6 +1039,8 @@ function buildDebugConsole({ max = 200 } = {}) {
   panel.append(bar, list);
   wrap.append(panel);
   document.body.appendChild(wrap);
+  wrap.style.transform       = 'scale(0.5)';
+  wrap.style.transformOrigin = 'bottom left';
 
   function setCollapsed(v) {
     collapsed = v;

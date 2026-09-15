@@ -1,0 +1,17 @@
+
+> haircut-simulator@0.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 46 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.05 kB │ gzip:   0.61 kB
+dist/assets/index-DPwTWVUH.js  814.21 kB │ gzip: 216.79 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.13s

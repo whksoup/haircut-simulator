@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Growth preview — review</title><style>
+body{margin:0;background:#14161a;color:#e5e7eb;font:16px/1.5 system-ui}main{max-width:1200px;margin:40px auto;padding:0 24px}a{color:#9bc6ff}h1{font-size:30px}h2{margin-top:36px}img{width:100%;display:block;border:1px solid #39404c}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{text-align:left;border-bottom:1px solid #39404c;padding:10px}.note{color:#aab4c3}#error{color:#ffb5b5}
+</style></head><body><main><h1>Growth preview</h1><p>Compare the full hairstyle at <b>1.0</b> with its root-side half at <b>0.5</b> and no visible hair at <b>0.0</b>.</p><p><a href="/" target="_blank">Open the simulator to try the Growth slider</a></p><p id="summary"></p><p id="error"></p><table><thead><tr><th>Facet</th><th>Strands</th><th>Mean full arc</th><th>Mean half arc</th><th>Largest ratio error</th></tr></thead><tbody id="metrics"></tbody></table><h2>Whole-head views</h2><img id="overview" alt="Front, side and top views at full, half and zero growth"><h2>Facet close-ups</h2><img id="facets" alt="Three facets at full, half and zero growth"><p class="note">Human review: does shortening look like cutting from the tips while keeping the surviving bends fixed? Numeric checks and screenshots complement this judgement.</p></main>
+<script type="module">
+try{
+const run=new URLSearchParams(location.search).get('run');if(!/^run-\d+$/.test(run))throw Error('A captured run ID is required.');
+const base='/docs/evidence/growth-preview/'+run+'-';
+const [report,input]=await Promise.all(['candidate-evaluation.json','candidate-inputs.json'].map(name=>fetch(base+name).then(r=>r.json())));
+document.querySelector('#summary').textContent=`${input.strands.length} strands measured on the default groom. ${report.checks.filter(c=>!c.pass).length} failed harness checks. Captured ${new Date(report.date).toLocaleString()}.`;
+const half=report.scenarios.find(s=>s.name==='default'&&s.p===.5);
+for(const facet of [...new Set(input.strands.map(s=>s.facetId))]){
+const ids=new Set(input.strands.filter(s=>s.facetId===facet).map(s=>s.index));const rows=half.metrics.filter(s=>ids.has(s.index));
+const values=[facet,rows.length,(rows.reduce((s,r)=>s+r.fullLength,0)/rows.length).toFixed(6),(rows.reduce((s,r)=>s+r.length,0)/rows.length).toFixed(6),Math.max(...rows.map(r=>Math.abs(r.ratio-.5))).toExponential(2)];
+const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}document.querySelector('#metrics').append(tr);
+}
+document.querySelector('#overview').src=base+'contact-overview.png';document.querySelector('#facets').src=base+'contact-facets.png';
+}catch(e){document.querySelector('#error').textContent=e.message;}
+</script></body></html>

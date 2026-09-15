@@ -1,0 +1,257 @@
+
+> haircut-simulator@0.0.0 test
+> node --test tests
+
+TAP version 13
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\adjacency.test.mjs
+not ok 1 - C:\\Users\\He Kai\\haircut-simulator\\tests\\adjacency.test.mjs
+  ---
+  duration_ms: 325.4404
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\adjacency.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\console.test.mjs
+not ok 2 - C:\\Users\\He Kai\\haircut-simulator\\tests\\console.test.mjs
+  ---
+  duration_ms: 298.8533
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\console.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\growth.test.mjs
+not ok 3 - C:\\Users\\He Kai\\haircut-simulator\\tests\\growth.test.mjs
+  ---
+  duration_ms: 278.4858
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\growth.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\history.test.mjs
+not ok 4 - C:\\Users\\He Kai\\haircut-simulator\\tests\\history.test.mjs
+  ---
+  duration_ms: 261.3877
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\history.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-commit.test.mjs
+not ok 5 - C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-commit.test.mjs
+  ---
+  duration_ms: 248.8737
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-commit.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-field.test.mjs
+not ok 6 - C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-field.test.mjs
+  ---
+  duration_ms: 216.6288
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-field.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-overlay.test.mjs
+not ok 7 - C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-overlay.test.mjs
+  ---
+  duration_ms: 204.4401
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-overlay.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-release.test.mjs
+not ok 8 - C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-release.test.mjs
+  ---
+  duration_ms: 194.9122
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-release.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-tool.test.mjs
+not ok 9 - C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-tool.test.mjs
+  ---
+  duration_ms: 192.5799
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\seam-tool.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 0
+# fail 9
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 470.734

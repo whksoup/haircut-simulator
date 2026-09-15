@@ -1,0 +1,38 @@
+flowchart TB
+    app["app/main.js · composition + arbitration + restore"]
+    ui["app/ui.js · controls"]
+    history["app/history.js · patches / snapshots"]
+    scene["scene/ · viewer + loader + facet catalogue"]
+    groom["groom/ · authored faces, guides, seams · JSON"]
+    hair["hair/ · shape, constraints, cut, growth, audit"]
+    tools["tools/ · select, comb, scissors, seams"]
+    debug["debug/ · guide and seam overlays"]
+    factory["rendering/renderer.js · default: guides"]
+    sample["rendering/strandSampler.js · deterministic roots"]
+    gpu["rendering/gpu/gpuHairR3.js · instances + guide texture"]
+    binding["rendering/gpu/guideBinding.js + seamField.js"]
+    shader["rendering/gpu/hairShaderGuides.js · blend + phase"]
+    legacy["rendering/legacy/ · R2 / CPU comparisons"]
+    app --> ui
+    app --> history
+    app --> scene
+    app --> groom
+    app --> tools
+    app --> debug
+    app --> factory
+    ui -- callbacks --> app
+    tools --> groom
+    tools --> hair
+    groom --> hair
+    factory --> gpu
+    factory -. comparison options .-> legacy
+    gpu --> sample
+    gpu --> binding
+    gpu --> shader
+    gpu --> hair
+    gpu --> groom
+    binding -- reads topology --> scene
+    binding -- reads seams --> groom
+    shader --> hair
+    debug --> groom
+    debug --> scene

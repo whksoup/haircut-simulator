@@ -1,0 +1,37 @@
+TAP version 13
+# node:fs:2729
+#       const stats = binding.lstat(baseLong, true, undefined, true /* throwIfNoEntry */);
+#                             ^
+# Error: EPERM: operation not permitted, lstat 'C:\\Users\\He Kai'
+#     at Object.realpathSync (node:fs:2729:29)
+#     at toRealPath (node:internal/modules/helpers:58:13)
+#     at Module._findPath (node:internal/modules/cjs/loader:698:22)
+#     at resolveMainPath (node:internal/modules/run_main:35:23)
+#     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:160:24)
+#     at node:internal/main/run_main_module:28:49 {
+#   errno: -4048,
+#   code: 'EPERM',
+#   syscall: 'lstat',
+#   path: 'C:\\\\Users\\\\He Kai'
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\growth-preview.test.mjs
+not ok 1 - C:\\Users\\He Kai\\haircut-simulator\\tests\\growth-preview.test.mjs
+  ---
+  duration_ms: 172.884
+  location: 'C:\\Users\\He Kai\\haircut-simulator\\tests\\growth-preview.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 186.0995

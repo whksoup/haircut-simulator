@@ -1,0 +1,41 @@
+{
+  "sourceRun": "run-1789495959352",
+  "sourceIdentity": "44 source/harness/model hashes in the sourceRun manifest; all matched at final verification",
+  "observer": "Coordinator using Codex in-app browser through CUA; prose scenario metadata complements raw state snapshots",
+  "date": "2026-09-16 Asia/Singapore",
+  "uiRun": "ui-1789496304137",
+  "steps": [
+    {"artifact":"interaction-1.json","scenario":"Native text control changes masterSeed to 1338 at full fraction; one undo entry"},
+    {"artifact":"interaction-2.json","scenario":"Fraction .5; attempted comb dropdown selection resets to none; real Control+Z does not undo seed; authoring controls visibly disabled"},
+    {"artifact":"interaction-3.json","scenario":"Return to1 then real Control+Z; seed and displayed control restore to1337; undo depth0/redo1"},
+    {"artifact":"interaction-4.json","scenario":"Real Control+Shift+Z restores1338; subsequent undo returns1337"},
+    {"artifact":"interaction-5.json","scenario":"Native canvas click selects facet335; Add hair produces fourth face/guide"},
+    {"artifact":"interaction-6.json","scenario":"Remove hair returns three faces/guides"},
+    {"artifact":"interaction-7.json","scenario":"Select seam tool and native canvas edge; enter permeability0, authored seam appears; pending history closes on preview transition"},
+    {"artifact":"interaction-8.json","scenario":"Fraction .5 locks seam controls; pick tool still selects facet0; three history entries, no authoring from selection"},
+    {"artifact":"interaction-9.json","scenario":"Native wheel zoom changes view during preview; screenshot compared with8; authored groom/history unchanged"},
+    {"artifact":"interaction-10.json","scenario":"Return to1 and Control+Z removes seam; permeability display restores1; editing/history operational"}
+  ],
+  "nativeGestures": [
+    "ui-1789495675424-native-stroke-comb-1789495699058.json",
+    "ui-1789495725794-native-stroke-scissors-1789495737404.json"
+  ],
+  "load": {
+    "scenario":"Actual filechooser setFiles loaded run-1789494420315-saved-at-1.json from fraction .5",
+    "observedLocalTime":"02:06:15",
+    "observation":"UI fraction1 and styling enabled; log history cleared (loaded groom)",
+    "evidenceLimit":"CUA tool observation, no separate native-file-load screenshot saved; final source run additionally captures valid/invalid application callback checks"
+  },
+  "save": {
+    "artifacts":["ui-1789495725794-save-action-1789495789883.json","ui-1789495725794-save-action-1789495806258.json"],
+    "observation":"Actual Save action Blob captured at.5 equals full authored JSON",
+    "delivery":"Unconfirmed: download event timed out and no groom JSON appeared in Downloads; do not claim successful browser-to-disk delivery"
+  },
+  "console": {
+    "tool":"tab.dev.logs levels error limit100, filtered timestamp >=2026-09-15T18:12:39Z",
+    "result":[],
+    "qualification":"Earlier transient HMR/incomplete-source errors are not final candidate errors. Existing topology/color warnings remain."
+  },
+  "performance":"perf-1789496002166-performance.json; three paired runs each on1671 and7850 strands;5s warmup+15s sample per case; RAF intervals, not isolated GPU timings",
+  "humanAcceptance":"Pending"
+}

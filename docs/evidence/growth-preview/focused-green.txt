@@ -1,0 +1,65 @@
+TAP version 13
+# [GpuHairR3] no catalogue on mesh — nothing to grow
+# [GpuHairR3] rebuild — 0 strands, 0 facets, 0 guides
+# Subtest: growth preview starts at the full fraction
+ok 1 - growth preview starts at the full fraction
+  ---
+  duration_ms: 3.7177
+  ...
+# Subtest: fraction scrub preserves authored state and derived buffers across rebuilds
+ok 2 - fraction scrub preserves authored state and derived buffers across rebuilds
+  ---
+  duration_ms: 8.6187
+  ...
+# Subtest: arc prefix retains unequal segments, corners, repeated points, and the anchored root
+ok 3 - arc prefix retains unequal segments, corners, repeated points, and the anchored root
+  ---
+  duration_ms: 5.5064
+  ...
+# Subtest: preview settles the current history unit once, locks styling, and never changes serialized state
+ok 4 - preview settles the current history unit once, locks styling, and never changes serialized state
+  ---
+  duration_ms: 1.5919
+  ...
+# Subtest: unclosed gesture defers preview without changing fraction or uniform
+ok 5 - unclosed gesture defers preview without changing fraction or uniform
+  ---
+  duration_ms: 0.4319
+  ...
+# Subtest: tool and renderer action routes refuse authorship while preview is active
+ok 6 - tool and renderer action routes refuse authorship while preview is active
+  ---
+  duration_ms: 2.7093
+  ...
+# Subtest: preview gesture finish preserves an open cut, closes it once, cancels placement and releases capture
+ok 7 - preview gesture finish preserves an open cut, closes it once, cancels placement and releases capture
+  ---
+  duration_ms: 1.4107
+  ...
+#   6a: 4 and 12 (1:3) rewind to 0.25 and 8.25 (1:33)
+#   6b: phase 0 is bit-exact identity on all four fixtures
+#   6b≡\#4: tip 2.9e-17, off-curve 1.7e-17, drawn-vs-cut length 0.0058%, interior spacing 0.476% of L
+#   \#2 dependency: drifted, f=0.4 lands at arc 0.396099 — the remap is only arc truncation while \#2 holds
+#   6b: nine vertices at every phase, spacing spread <1%, tip moves continuously
+#   6d: root pinned, length monotone in phase, clamps to the scalp
+#   6e: unreachable / marginal / exceeds-measured / clamped all named, drift measured not assumed
+#   6c: rate round-trips, v5→v6 stamps the default, absent ≠ zero, negative refused
+#   preview: rewinding at four phases left the store byte-identical
+# [GpuHairR3] no catalogue on mesh — nothing to grow
+# [GpuHairR3] rebuild — 0 strands, 0 facets, 2 guides
+#   renderer: rate metadata retained, fraction is a runtime-only uniform
+# growth: all assertions passed
+# Subtest: C:\\Users\\He Kai\\haircut-simulator\\tests\\growth.test.mjs
+ok 2 - C:\\Users\\He Kai\\haircut-simulator\\tests\\growth.test.mjs
+  ---
+  duration_ms: 528.6784
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 577.84

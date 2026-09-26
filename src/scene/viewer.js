@@ -144,7 +144,13 @@ export class Viewer {
     const w = this.container.clientWidth  || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
+    if (this.camera.isOrthographicCamera) {
+      const halfHeight = this.camera.userData.technicalHalfHeight ?? (this.camera.top - this.camera.bottom) / 2;
+      this.camera.left = -halfHeight * w / h;
+      this.camera.right = halfHeight * w / h;
+      this.camera.top = halfHeight;
+      this.camera.bottom = -halfHeight;
+    } else this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   };
 

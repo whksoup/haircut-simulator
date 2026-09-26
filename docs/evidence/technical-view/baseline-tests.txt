@@ -1,0 +1,199 @@
+
+> haircut-simulator@0.0.0 test
+> node --test tests
+
+TAP version 13
+# [FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 12 adjacency edges, chi=2.
+# [seams] seeded 0 of 12 edges from creases (> 40deg, concave, softness 0deg); 0 fully hard.
+# [seams] seeded 12 of 12 edges from creases (> 40deg, convex, softness 0deg); 12 fully hard.
+# [seams] seeded 0 of 12 edges from creases (> 100deg, both, softness 0deg); 0 fully hard.
+# [seams] seeded 12 of 12 edges from creases (> 80deg, convex, softness 20deg); 0 fully hard.
+# [FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 15 adjacency edges, chi=0.
+# all assertions passed
+# cube: F=6 E=12 V=8 chi=2
+# broken weld: chi=0, 4 boundary edges
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\adjacency.test.mjs
+ok 1 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\adjacency.test.mjs
+  ---
+  duration_ms: 616.3652
+  ...
+# undefined:4
+# ; return buildDebugConsole;
+#   ^
+# ReferenceError: buildDebugConsole is not defined
+#     at eval (eval at <anonymous> (file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/console.test.mjs:44:27), <anonymous>:4:3)
+#     at file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/console.test.mjs:44:78
+#     at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+#     at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5)
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\console.test.mjs
+not ok 2 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\console.test.mjs
+  ---
+  duration_ms: 345.6906
+  location: 'C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\console.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# [GpuHairR3] no catalogue on mesh — nothing to grow
+# [GpuHairR3] rebuild — 0 strands, 0 facets, 0 guides
+# Subtest: growth preview starts at the full fraction
+ok 3 - growth preview starts at the full fraction
+  ---
+  duration_ms: 6.2948
+  ...
+# Subtest: fraction scrub preserves authored state and derived buffers across rebuilds
+ok 4 - fraction scrub preserves authored state and derived buffers across rebuilds
+  ---
+  duration_ms: 10.3455
+  ...
+# Subtest: arc prefix retains unequal segments, corners, repeated points, and the anchored root
+ok 5 - arc prefix retains unequal segments, corners, repeated points, and the anchored root
+  ---
+  duration_ms: 3.1632
+  ...
+# Subtest: preview settles the current history unit once, locks styling, and never changes serialized state
+ok 6 - preview settles the current history unit once, locks styling, and never changes serialized state
+  ---
+  duration_ms: 1.3622
+  ...
+# Subtest: unclosed gesture defers preview without changing fraction or uniform
+ok 7 - unclosed gesture defers preview without changing fraction or uniform
+  ---
+  duration_ms: 0.4854
+  ...
+# Subtest: tool and renderer action routes refuse authorship while preview is active
+ok 8 - tool and renderer action routes refuse authorship while preview is active
+  ---
+  duration_ms: 2.1024
+  ...
+# Subtest: preview gesture finish preserves an open cut, closes it once, cancels placement and releases capture
+ok 9 - preview gesture finish preserves an open cut, closes it once, cancels placement and releases capture
+  ---
+  duration_ms: 0.8333
+  ...
+#   6a: 4 and 12 (1:3) rewind to 0.25 and 8.25 (1:33)
+#   6b: phase 0 is bit-exact identity on all four fixtures
+#   6b≡\#4: tip 2.9e-17, off-curve 1.7e-17, drawn-vs-cut length 0.0058%, interior spacing 0.476% of L
+#   \#2 dependency: drifted, f=0.4 lands at arc 0.396099 — the remap is only arc truncation while \#2 holds
+#   6b: nine vertices at every phase, spacing spread <1%, tip moves continuously
+#   6d: root pinned, length monotone in phase, clamps to the scalp
+#   6e: unreachable / marginal / exceeds-measured / clamped all named, drift measured not assumed
+#   6c: rate round-trips, v5→v6 stamps the default, absent ≠ zero, negative refused
+#   preview: rewinding at four phases left the store byte-identical
+# [GpuHairR3] no catalogue on mesh — nothing to grow
+# [GpuHairR3] rebuild — 0 strands, 0 facets, 2 guides
+#   renderer: rate metadata retained, fraction is a runtime-only uniform
+# growth: all assertions passed
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\growth.test.mjs
+ok 4 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\growth.test.mjs
+  ---
+  duration_ms: 711.8871
+  ...
+# all assertions passed — 2 entries on the stack
+# restore paths taken: setGuides:1 setGuides:1 rebuild rebuild rebuild
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\history.test.mjs
+ok 5 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\history.test.mjs
+  ---
+  duration_ms: 471.612
+  ...
+# node:internal/modules/run_main:129
+#     triggerUncaughtException(
+#     ^
+# AssertionError [ERR_ASSERTION]: one commit → one undo entry
+#     at file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/seam-commit.test.mjs:56:8
+#     at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+#     at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5) {
+#   generatedMessage: false,
+#   code: 'ERR_ASSERTION',
+#   actual: 0,
+#   expected: 1,
+#   operator: '=='
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-commit.test.mjs
+not ok 6 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-commit.test.mjs
+  ---
+  duration_ms: 470.6521
+  location: 'C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-commit.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# all assertions passed
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-field.test.mjs
+ok 7 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-field.test.mjs
+  ---
+  duration_ms: 401.0666
+  ...
+# [FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 12 adjacency edges, chi=2.
+# THREE.Material: parameter 'color' has value of undefined.
+# overlay: all assertions passed
+# ribbon width = 0.00700 units, flat in surface
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-overlay.test.mjs
+ok 8 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-overlay.test.mjs
+  ---
+  duration_ms: 441.2075
+  ...
+# node:internal/modules/run_main:129
+#     triggerUncaughtException(
+#     ^
+# AssertionError [ERR_ASSERTION]: pointerup listener is capture-phase
+#     at file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/seam-release.test.mjs:90:8
+#     at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+#     at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5) {
+#   generatedMessage: false,
+#   code: 'ERR_ASSERTION',
+#   actual: 0,
+#   expected: 1,
+#   operator: '=='
+# }
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-release.test.mjs
+not ok 9 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-release.test.mjs
+  ---
+  duration_ms: 473.5626
+  location: 'C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-release.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# [FacetCatalogue] 96 facets from 192 triangles, ids 0–95; 192 adjacency edges, chi=2.
+# file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/seam-tool.test.mjs:79
+#   const d = cat.edgesOfVertex(v).length;
+#                 ^
+# TypeError: cat.edgesOfVertex is not a function
+#     at file:///C:/Users/He%20Kai/.codex/worktrees/ddf1/haircut-simulator/tests/seam-tool.test.mjs:79:17
+#     at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+#     at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+#     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:123:5)
+# Node.js v20.16.0
+# Subtest: C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-tool.test.mjs
+not ok 10 - C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-tool.test.mjs
+  ---
+  duration_ms: 456.2617
+  location: 'C:\\Users\\He Kai\\.codex\\worktrees\\ddf1\\haircut-simulator\\tests\\seam-tool.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 12
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 858.1661

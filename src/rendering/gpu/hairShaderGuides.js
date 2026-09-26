@@ -79,6 +79,7 @@ vec3 growthStrandVertex(float t) {
 export const hairVertexShaderR3 = hairReconstructionGLSL + /* glsl */ `
 varying float vT;
 varying float vSeed;
+varying vec3 vTechnicalWorldPosition;
 void main() {
   vec3 meshPos = growthStrandVertex(aT);
   if (uGrowthFraction == 1.0 && uCombR > 0.0) {
@@ -90,19 +91,26 @@ void main() {
   }
   vT = aT;
   vSeed = iSeed;
+  vTechnicalWorldPosition = (modelMatrix * vec4(meshPos, 1.0)).xyz;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(meshPos, 1.0);
 }
 `;
 export const hairFragmentShaderR3 = /* glsl */ `
 uniform vec3 uColor;
 uniform float uGrowthFraction;
+uniform bool uTechnical;
+uniform bool uTechnicalClipping;
+uniform vec4 uTechnicalPlane;
 varying float vT;
 varying float vSeed;
+varying vec3 vTechnicalWorldPosition;
 void main() {
   if (uGrowthFraction <= 0.0) discard;
+  if (uTechnicalClipping && dot(uTechnicalPlane.xyz, vTechnicalWorldPosition) + uTechnicalPlane.w < 0.0) discard;
   float shade = mix(0.55, 1.0, vT);
   float tint = 0.9 + 0.2 * fract(vSeed * 17.0);
   gl_FragColor = vec4(uColor * shade * tint, 1.0);
+  if (uTechnical) gl_FragColor = vec4(vec3(mix(0.035, 0.12, step(0.65, vT))), 1.0);
 }
 `;
 export function makeHairMaterialR3({ color = 0xd4a96a } = {}) {
@@ -112,6 +120,9 @@ export function makeHairMaterialR3({ color = 0xd4a96a } = {}) {
       uGuideTex: { value: null },
       uGuideTexSize: { value: new THREE.Vector2(SHAPE_POINTS, 1) },
       uGrowthFraction: { value: 1 },
+      uTechnical: { value: false },
+      uTechnicalClipping: { value: false },
+      uTechnicalPlane: { value: new THREE.Vector4(1, 0, 0, 0) },
       uClump: { value: 1 }, uJitter: { value: 0 }, uLenVar: { value: 0 },
       uCombA: { value: new THREE.Vector3() }, uCombB: { value: new THREE.Vector3() },
       uCombR: { value: 0 }, uColor: { value: new THREE.Color(color) },

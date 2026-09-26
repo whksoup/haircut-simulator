@@ -1,6 +1,10 @@
 # Project status
 
-Updated: 2026-09-16 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
+Updated: 2026-09-18 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
+
+## Frozen handover - 2026-09-27
+
+Frozen at user request. See [README](../README.md) and [freeze session](sessions/2026-09-27-freeze-handover.md). This branch contains the recovered Technical view candidate. Checkpoint monitor PAUSED. Fresh tests: 17 pass / 4 known failures; build passes. Historical core review does not establish the full later TV-1 rubric. Entries below describe the September 18 implementation before its freeze commit; do not resume automatically.
 
 ## Existing system and baseline
 
@@ -12,6 +16,7 @@ Verified 2026-09-16 on the local dirty checkout after growth implementation: pro
 
 | Track | Scope | Stage / owner | Next action / evidence |
 | --- | --- | --- | --- |
+| Haircut Technical view | v1: illustrated finished-cut inspection, camera presets and head/hair cutaway | Integrated; core rubric passes / coordinator with parallel builders and independent review | [Evidence](evidence/technical-view/README.md), [session](sessions/2026-09-18-haircut-instruction-ui.md). 101 browser assertions pass; 5 targeted tests pass; full suite 17 pass / same 4 known failures; build passes. Native download delivery/picker and successful shortening cut remain verification limits. Uncommitted changes on `codex/haircut-technical-view`, base effc25c. |
 | Growth preview | v1: global retained arc fraction, styling lock, immutable full-state save | Integrated; human evaluation pending / primary agent | Final GPU run passes45 scenarios/1671 strands; real tool/controls smoke and full checks recorded. Critic passes G1–G4/G6–G7; G5 download delivery and G8 human acceptance remain insufficient evidence. [Plan, rubric and remaining acceptance](workstreams/growth-preview.md), [session](sessions/2026-09-16-growth-preview.md). Next: human visual review and Save download delivery check |
 | Agent/documentation workflow | v1: three roles and three documentation layers | Closed (files/configuration validated) / primary agent | Use on the next substantive task; runtime role discovery not exercised in this session; [handoff](sessions/2026-09-15-agent-workflow.md) |
 | Critic and test-first extension | v2: critic role and builder procedure | Closed (files/configuration validated) / primary agent | Ready for a later implementation trial with a supplied rubric; runtime role behavior untested; [validation](sessions/2026-09-16-critic-test-first.md) |

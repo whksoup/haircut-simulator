@@ -1,0 +1,19 @@
+✔ camera assignment updates rendering, picking and subscribers atomically (3.0029ms)
+✔ twenty projection round trips preserve target-plane landmarks with pan, zoom and resize (3.1903ms)
+✔ six grooming presets are orthographic and both pole presets escape into free orbit (0.8221ms)
+✔ Technical borrows the camera and returns orthographic identity, pose, zoom and target (5.2741ms)
+✔ camera swaps discard residual damping without moving the saved pose (0.2594ms)
+✔ real OrbitControls pan moves the same CSS distance after magnified projection changes (0.5995ms)
+✔ cut planes divide translated bounds along every axis, with complementary sides (0.929ms)
+✔ technical entry and repeated return preserve material, geometry, camera identity and scene settings (6.9891ms)
+✔ head and reconstructed hair share a world-space clipping half-space for every axis and side (1.1804ms)
+✔ six presets are axis aligned and orbiting away marks free view (1.6616ms)
+✔ a downward orbit gesture leaves both pole presets without hitting a polar clamp (0.6937ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.301

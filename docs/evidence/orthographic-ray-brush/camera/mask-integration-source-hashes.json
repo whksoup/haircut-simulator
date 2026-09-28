@@ -1,0 +1,18 @@
+[
+  {
+    "path": "src/debug/brushMaskOverlay.js",
+    "sha256": "CCDDC411EBF7988B3891D0ED9D51D82FA6CB6D20BA27FD17F4219227ABAC5CA7"
+  },
+  {
+    "path": "tests/brush-mask-overlay.test.mjs",
+    "sha256": "622D6CCAE44410D892E8FC535ADE2D238D6589D24381F9F6525E88C51E61B4F7"
+  },
+  {
+    "path": "tests/browser/orb-integration.js",
+    "sha256": "4CA50DB7510F75DE6FDB95C8C98713D320EB35C97F818EF6F5CCB6F490DB3E8E"
+  },
+  {
+    "path": "tests/browser/orb-integration.html",
+    "sha256": "22D9B68B7FD3A22B336BDFCA6F987D33F09DDD43185DA5D5A02D428AC20686FC"
+  }
+]

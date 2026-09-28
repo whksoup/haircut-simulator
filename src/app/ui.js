@@ -99,8 +99,11 @@ import { Groom } from '../groom/groom.js';
  * @param {object}   [opts.renderer]
  */
 export function buildUI({
-  groom, onLoad, raycast, renderer, runtime, comb, scissors, guideDebug, history,
+  groom, onLoad, raycast, renderer, runtime, comb, brush, scissors, guideDebug, history,
+  serializeGroom = () => groom.serialize(), runHistoryAction,
   canStyle = () => true, setGrowthFraction, getActiveTool = () => 'none',
+  groomingCamera, setGroomingProjection, setGroomingView,
+  canNavigateGrooming = () => true,
   seamOverlay, seamTool, selectionOps, catalogue,
   startCombPlacement, startScissorsPlacement, cutAtBlade,
   seamsFromFacetSelection, seamFromFacetPair, setSyncHooks,
@@ -130,7 +133,7 @@ export function buildUI({
   // TITLE is always visible and it is one click away.
   const file = gui.addFolder('File');
   const actions = {
-    save: () => downloadJSON(groom.serialize(), 'groom.json'),
+    save: () => { const text = serializeGroom(); if (text !== null) downloadJSON(text, 'groom.json'); },
     load: () =>
       pickJSON((text) => {
         try {
@@ -160,8 +163,8 @@ export function buildUI({
   if (history) {
     const edit = gui.addFolder('Edit');
     const editActions = {
-      undo: () => { const l = history.undo(); if (l) dbg.log(`undo: ${l}`); refreshStats(); },
-      redo: () => { const l = history.redo(); if (l) dbg.log(`redo: ${l}`); refreshStats(); },
+      undo: () => { if (runHistoryAction) runHistoryAction('undo'); else history.undo(); refreshStats(); },
+      redo: () => { if (runHistoryAction) runHistoryAction('redo'); else history.redo(); refreshStats(); },
     };
     edit.close();
     const cUndo = edit.add(editActions, 'undo').name('Undo');
@@ -170,24 +173,54 @@ export function buildUI({
     history.onChange = (h) => {
       cUndo.name(h.canUndo ? `Undo ${h.undoLabel}` : 'Undo');
       cRedo.name(h.canRedo ? `Redo ${h.redoLabel}` : 'Redo');
-      cUndo.enable(canStyle() && h.canUndo);
-      cRedo.enable(canStyle() && h.canRedo);
+      cUndo.enable(canStyle() && (h.canUndo || brush?.active));
+      cRedo.enable(canStyle() && (h.canRedo || brush?.active));
     };
     history.onChange(history);
   }
 
   file.close();
 
+  // Projection is available during growth inspection as well as full grooming.
+  // Keep a UI copy: changing a dropdown must not mutate camera state before
+  // the application has finished any live gesture.
+  let syncGroomingCamera = () => {};
+  if (groomingCamera) {
+    const viewFolder = gui.addFolder('View');
+    const viewState = { ...groomingCamera.state };
+    const projectionControl = viewFolder.add(viewState, 'projection', {
+      Perspective: 'perspective', Orthographic: 'orthographic',
+    }).name('Projection').onChange(value => {
+      setGroomingProjection?.(value);
+      syncGroomingCamera();
+    });
+    const presetControl = viewFolder.add(viewState, 'view', {
+      Free: 'free', Front: 'front', Back: 'back', Left: 'left',
+      Right: 'right', Top: 'top', Bottom: 'bottom',
+    }).name('View').onChange(value => {
+      setGroomingView?.(value);
+      syncGroomingCamera();
+    });
+    syncGroomingCamera = () => {
+      Object.assign(viewState, groomingCamera.state);
+      for (const control of [projectionControl, presetControl]) {
+        control.enable(canNavigateGrooming());
+        control.updateDisplay();
+      }
+    };
+  }
+
   // --- Tools ----------------------------------------------------------------
   const tools = gui.addFolder('Tools');
   const toolState = { tool: 'none' };
+  let brushFolder = null;
 
   // Captured: the seam bridges below call setActiveTool('seam') directly, and
   // the dropdown has to follow or it lies about which tool owns the pointer.
   const toolCtrl = tools
-    .add(toolState, 'tool', ['none', 'pick', 'comb', 'scissors', 'seam'])
+    .add(toolState, 'tool', ['none', 'pick', 'comb', ...(brush ? ['brush'] : []), 'scissors', 'seam'])
     .name('Active tool')
-    .onChange((v) => setActiveTool?.(v));
+    .onChange((v) => { setActiveTool?.(v); if (v === 'brush') brushFolder?.open(); });
 
   if (raycast) {
     const hairActions = {
@@ -206,6 +239,37 @@ export function buildUI({
     };
   }
 
+  if (brush) {
+    brushFolder = gui.addFolder('Brush');
+    const brushState = {
+      get radius() { return brush.radius; },
+      set radius(value) { brush.setRadius(value); },
+      get scope() { return brush.mask === null ? 'all' : 'selected'; },
+      set scope(value) { brush.setMask(value === 'selected' ? raycast?.selection ?? new Set() : null); },
+      get status() { return brush.active ? 'Brushing — release to finish' : brush.status || 'Hold left mouse and move to brush'; },
+      get orientation() { const f = brush.strokeFrame; return f ? Math.round(f.heading * 180 / Math.PI) + '° heading; ' + Math.round(f.elevation * 180 / Math.PI) + '° tilt' : 'Heading snaps every 45°; tilt stays free'; },
+      get region() {
+        return brush.mask === null ? 'All facets' : brush.mask.size
+          ? `${brush.mask.size} selected facet(s)` : 'No facets selected — brush affects nothing';
+      },
+      useSelection: () => {
+        brush.finishEditing('mask-change');
+        brush.setMask(raycast?.selection ?? new Set());
+        scopeControl.updateDisplay();
+      },
+      hint: 'Shared guides can move neighboring hair.',
+    };
+    brushFolder.add(brushState, 'status').name('Gesture').disable().listen();
+    brushFolder.add(brushState, 'orientation').name('Direction').disable().listen();
+    brushFolder.add(brushState, 'radius', 0.005, 0.25, 0.001).name('Radius').listen();
+    const scopeControl = brushFolder.add(brushState, 'scope', { 'All facets': 'all', 'Selected facets only': 'selected' })
+      .name('Region').listen();
+    brushFolder.add(brushState, 'useSelection').name('Use current selection');
+    brushFolder.add(brushState, 'region').name('Mask').disable().listen();
+    brushFolder.add(brushState, 'hint').name('Boundary').disable();
+    brushFolder.close();
+  }
+
   // --- Globals --------------------------------------------------------------
   // Density and length apply to the SELECTION when there is one, and set the
   // default for new facets otherwise.
@@ -217,6 +281,7 @@ export function buildUI({
     folder.add(globalsState, key, min, max, step)
       .onChange((value) => {
         if (!canStyle()) { syncGrowthPreview(); return; }
+        brush?.finishEditing('globals');
         history?.mark(`globals.${key}`);   // idempotent: one snapshot per drag
         groom.globals[key] = value;
 
@@ -240,6 +305,7 @@ export function buildUI({
   globals.add(seedState, 'masterSeed', 0, 99999, 1)
     .onChange((value) => {
       if (!canStyle()) { syncGrowthPreview(); return; }
+      brush?.finishEditing('seed');
       history?.mark('masterSeed');
       groom.masterSeed = value;
       renderer?.rebuild();
@@ -881,10 +947,10 @@ export function buildUI({
   // the restored mean.
   // Authored fields are staged above: disabled UI is feedback, while action
   // and tool guards remain authoritative even for programmatic callbacks.
-  const lockedFolders = new Set(['Globals', 'Look', 'Comb', 'Scissors', 'Seams']);
+  const lockedFolders = new Set(['Globals', 'Look', 'Comb', 'Brush', 'Scissors', 'Seams']);
   const lockedControllers = gui.controllersRecursive().filter((c) => {
     if (['addHair', 'removeHair'].includes(c.property)) return true;
-    if (['status', 'summary', 'selected', 'hint', 'show', 'visible', 'size', 'check', 'preview'].includes(c.property)) return false;
+    if (['status', 'orientation', 'region', 'summary', 'selected', 'hint', 'show', 'visible', 'size', 'check', 'preview'].includes(c.property)) return false;
     for (let folder = c.parent; folder; folder = folder.parent) {
       if (lockedFolders.has(folder._title)) return true;
     }
@@ -904,7 +970,8 @@ export function buildUI({
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
     fractionCtrl.updateDisplay(); growthHint.updateDisplay();
   }
-  setSyncHooks?.({ syncSeamSlider, syncSeamEditMode, syncOverlayToggle, syncGrowthPreview });
+  setSyncHooks?.({ syncSeamSlider, syncSeamEditMode, syncOverlayToggle, syncGrowthPreview, syncGroomingCamera });
+  syncGroomingCamera();
   syncGrowthPreview();
 
   const dbg = buildDebugConsole();

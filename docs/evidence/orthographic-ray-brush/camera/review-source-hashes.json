@@ -1,0 +1,30 @@
+[
+  {
+    "path": "src/scene/viewer.js",
+    "sha256": "F3D06EBEF3FB761EC4FC857BFE193222CE26A899F6AB6A53CC45D14107C661DF"
+  },
+  {
+    "path": "src/scene/groomingCamera.js",
+    "sha256": "0FC95A457F9292BB08FB93B05CB4396E1F917D8C9A6C269E5E48A704188554C3"
+  },
+  {
+    "path": "src/scene/technicalView.js",
+    "sha256": "DD711F15A7656DAE39BAF196B12105A9A21C17D60757B0176FFB0EBA99024AC3"
+  },
+  {
+    "path": "src/tools/combTool.js",
+    "sha256": "FD1799EA7C708C0B9DEE87E28566A1A21B83FC3D0ECCFB5A1057181664ED552A"
+  },
+  {
+    "path": "src/tools/scissorsTool.js",
+    "sha256": "6894FB9838F0D9B3B930AD39E6395E2ECF5769C9DD055E694C5881EB87329A98"
+  },
+  {
+    "path": "tests/grooming-camera.test.mjs",
+    "sha256": "213EB05E2E6F6B17F751B0C2FDAB0E3A8325AC33686FA1DDCCA9428730E32008"
+  },
+  {
+    "path": "tests/technical-view.test.mjs",
+    "sha256": "B9A46604923A4B60D813D1B5BC938F5D8199F035DCEEEAEEECB4AC6DCFF1F1D9"
+  }
+]

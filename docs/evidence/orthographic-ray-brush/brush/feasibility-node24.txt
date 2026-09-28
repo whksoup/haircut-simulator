@@ -1,0 +1,12 @@
+{"fixture":"single-facet","selectedMove":0.17411170251880898,"excludedMove":0.016863754357394675,"rows":[0,1,2,1,0,2],"weights":[0.9965841770172119,0.0027606249786913395,0.0006552173872478306,0.8687258362770081,0.09652510285377502,0.03474903479218483],"lengthResidual":4.440892098500626e-16}
+{"fixture":"shared-guide-occlusion","nearMove":0.024958354161707035,"hiddenMove":0.02495835416170704}
+✔ feasibility: useful single-facet guide bend necessarily moves excluded blended strands, including after reload (3.6392ms)
+✔ feasibility: real head occlusion cannot isolate two strands sharing one guide (3.7685ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104.8821

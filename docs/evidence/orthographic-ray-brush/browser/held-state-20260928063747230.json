@@ -1,0 +1,82 @@
+{
+  "date": "2026-09-28T06:37:47.230Z",
+  "revision": "57ca555",
+  "source": "Concurrent dirty source; hashes attached",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": [
+    1280,
+    648,
+    1
+  ],
+  "fixture": "head.glb and default groom",
+  "camera": {
+    "metadata": {
+      "version": 4.6,
+      "type": "Object",
+      "generator": "Object3D.toJSON"
+    },
+    "object": {
+      "uuid": "4d48fc2e-21ab-4703-b98b-3ef98dd9e166",
+      "type": "OrthographicCamera",
+      "userData": {
+        "viewHalfHeight": 2.071067811865475
+      },
+      "layers": 1,
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        -2.220446049250313e-16,
+        -1,
+        0,
+        0,
+        1,
+        -2.220446049250313e-16,
+        0,
+        0,
+        4.999999999999982,
+        -8.881784197001252e-16,
+        1
+      ],
+      "up": [
+        0,
+        0,
+        -1
+      ],
+      "zoom": 1,
+      "left": -4.090998146894766,
+      "right": 4.090998146894766,
+      "top": 2.071067811865475,
+      "bottom": -2.071067811865475,
+      "near": 0.07892413608144257,
+      "far": 789.2413608144257
+    }
+  },
+  "target": [
+    0,
+    0,
+    0
+  ],
+  "stats": {
+    "strands": 1671,
+    "facets": 3,
+    "guides": 3,
+    "rows": 256,
+    "perStrandGuides": 3,
+    "growthFraction": 1,
+    "seams": {
+      "cached": 0,
+      "scale": 3,
+      "radius": null,
+      "truncated": false,
+      "active": false
+    }
+  },
+  "active": true,
+  "radius": 0.1,
+  "mask": "all",
+  "cursor": "position: fixed; display: block; pointer-events: none; border: 2px solid rgb(255, 136, 68); border-radius: 50%; transform: translate(-50%, -50%); box-sizing: border-box; z-index: 20; box-shadow: rgb(21, 21, 21) 0px 0px 0px 1px; left: 647.554px; top: 375.425px; width: 31.2882px; height: 31.2882px; background: rgba(255, 136, 68, 0.11);",
+  "input": "Synthetic held movement for static UI inspection; separate manual traces prove trusted gestures"
+}

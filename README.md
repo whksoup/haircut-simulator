@@ -1,4 +1,12 @@
-# Haircut Simulator
+# Haircut Simulator — snapped brush experiment
+
+This branch, `codex/snapped-brush`, is a separate experiment. It includes a copied snapshot of the prior uncommitted orthographic/camera-ray brush work, followed by the snapped-heading variant. It is not merged into the original checkout.
+
+Run `npm run dev` here and open `http://localhost:5177`. Choose **Tools → brush**, then hold left mouse and drag; right-drag still orbits freely between strokes. The brush heading snaps to the nearest45° around the head's localY turning axis while preserving camera tilt. That direction stays fixed for the stroke. A translucent3D cylinder with rounded caps shows the actual brush volume only while held. The Brush folder offers radius, copied facet scope and direction/status feedback. Existing shared-guide mask behavior is retained.
+
+Head transforms must have positive uniform scale without shear; unsupported transforms show a message and skip brushing. Parallel/backward or excessively distant mouse-plane intersections safely skip edits. Scene/file state and undo semantics remain unchanged. See the [experiment session](docs/sessions/2026-09-28-snapped-brush.md) and [evidence](docs/evidence/snapped-brush/README.md).
+
+The baseline documentation below describes the original working snapshot.
 
 Interactive Three.js hair grooming with GPU-instanced strands blended from authored guides. Supports facet selection, combing, scissors, seam authoring, undo/redo, and JSON save/load. The active renderer is `GpuHairR3` (`kind: 'guides'`).
 
@@ -95,6 +103,8 @@ public/models/       production head asset
 `Groom` owns authored faces, guides, seams, globals, and seeds. Guides hold normalized control points plus length, tangent, and growth rate. The GPU reconstructs dense strands by blending three guides; comb edits update guide texture rows. Mesh topology and GPU buffers are derived state.
 
 The Growth slider previews each strand's root-side arc-length fraction, from 1 (the full authored hairstyle) to 0 (no visible hair). It preserves surviving bends rather than scaling the shape. Styling is available at 1; camera movement, inspection, and saving remain available during preview. Saves contain the full authored groom, and loading resets the slider to 1. Historical rate-based rewind helpers remain separate from this visualizer.
+
+**Grooming View controls** switch between Perspective and Orthographic without leaving the ordinary grooming workspace. Front, Back, Left, Right, Top and Bottom presets select orthographic projection; orbiting away returns the label to Free. Projection changes preserve scale at the orbit target and finish current gestures. Comb and scissors gizmos follow the current camera. Startup remains perspective. Select **brush** in Tools, then hold the left mouse button and move across the hair. The Brush folder controls radius and All facets / Selected facets only. To mask, Pick facets, switch to Brush, and choose Selected facets only; the copied mask is highlighted and remains independent of later selection changes. Hidden guide segments remain fixed; neighboring rendered hair may move through existing guide interpolation. Brush strokes support undo/redo. Broader acceptance checks are recorded separately. See [phase status and evidence](docs/evidence/orthographic-ray-brush/README.md).
 
 **Technical view** opens the current haircut as a white technical illustration, with toon shading, outlines and optional plane edges. Drag to orbit or choose one of six orthographic views. Enable Cutaway to hide one side of an X/Y/Z plane through both head and hair; adjust its relative position or Flip side. Cutaway starts off on entry. Return to grooming (or Escape) restores the ordinary camera, presentation and previous tool; inspection preserves authored data, undo history and growth fraction. Controls support keyboard focus and slider arrows. Cut surfaces are not capped.
 

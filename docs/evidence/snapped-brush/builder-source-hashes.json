@@ -1,0 +1,26 @@
+[
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\src\\scene\\snappedBrushFrame.js",
+    "Hash": "6D80F9850B2357FD2B77BAD11FADA2DDE0D395B432CA9CBFD0E158E86F833B58"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\src\\debug\\snappedBrushCylinder.js",
+    "Hash": "00808B605512DD9B755E7171BC7E851D7C9ECF6A3530714FDD966FDB8F0EDC41"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\src\\tools\\snappedBrushTool.js",
+    "Hash": "30F51A1A1E4231881739BB71AA828CED94BCD814E1B94F62A60BBDED0192E60B"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\src\\tools\\rayBrushTool.js",
+    "Hash": "94DA7E8377B056505133F2F881329F8D014EDDAD151DF922916A831AFDB454C9"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\tests\\snapped-brush-frame.test.mjs",
+    "Hash": "57A0740BB9A33DE532A39CB3F4A01D869823CC014AF2B948F52B52F96E0AE6A8"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\.codex\\worktrees\\snapped-brush\\haircut-simulator\\tests\\snapped-brush-tool.test.mjs",
+    "Hash": "916EAC374E0E3E68C1250C9228BFDF2F89E3E329B79CC6C7735BE0A0A9238148"
+  }
+]

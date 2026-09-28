@@ -204,6 +204,7 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { SHAPE_POINTS, SHAPE_REST } from '../hair/strandShape.js';
+import { guideFrame, liftGuide, writeGuide } from '../hair/guideFrame.js';
 import {
   buildInvMass, solveStrand, relaxStrand, closestPtSegmentSegment,
 } from '../hair/strandConstraints.js';
@@ -377,6 +378,7 @@ export class CombTool {
 
     // --- gizmo ----------------------------------------------------------------
     this._tc = new TransformControls(viewer.camera, viewer.renderer.domElement);
+    this._offCameraChange = viewer.onCameraChange(camera => { this._tc.camera = camera; });
     this._tc.setMode('translate');
     this._tc.setSpace('local');
     this._tc.attach(this.object);
@@ -536,6 +538,7 @@ export class CombTool {
 
   dispose() {
     this.disable();
+    this._offCameraChange();
     this._tc.removeEventListener('dragging-changed', this._onDraggingChanged);
     this._tc.removeEventListener('objectChange', this._onObjectChange);
     this._tc.detach();
@@ -1245,58 +1248,15 @@ export class CombTool {
 
   /** The guide's {T,B,N} frame, root and length. T re-orthogonalised against N,
    *  matching guides.js. Returns the shared scratch object. */
-  _frame(g) {
-    const f = this._frm;
-    const [nx, ny, nz] = g.normal;
-    let [tx, ty, tz] = g.tangent;
-    const dd = tx * nx + ty * ny + tz * nz;
-    tx -= nx * dd; ty -= ny * dd; tz -= nz * dd;
-    const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
-    f.tx = tx; f.ty = ty; f.tz = tz;
-    f.nx = nx; f.ny = ny; f.nz = nz;
-    f.bx = ny * tz - nz * ty;
-    f.by = nz * tx - nx * tz;
-    f.bz = nx * ty - ny * tx;
-    f.rx = g.root[0]; f.ry = g.root[1]; f.rz = g.root[2];
-    f.L  = g.length || 1;
-    return f;
-  }
+  _frame(g) { return guideFrame(g, this._frm); }
 
   /** Normalised guide points → mesh-local `_local`. */
-  _lift(g, f) {
-    const p = g.points, loc = this._local, L = f.L;
-    for (let k = 0; k < SHAPE_POINTS; k++) {
-      const i = k * 3;
-      const lx = p[i], ly = p[i + 1], lz = p[i + 2];
-      loc[i]     = f.rx + (f.tx * lx + f.bx * ly + f.nx * lz) * L;
-      loc[i + 1] = f.ry + (f.ty * lx + f.by * ly + f.ny * lz) * L;
-      loc[i + 2] = f.rz + (f.tz * lx + f.bz * ly + f.nz * lz) * L;
-    }
-  }
+  _lift(g, f) { liftGuide(g, f, this._local); }
 
   /** Mesh-local `_local` → normalised guide points. Point 0 is the root and is
    *  never written: it is pinned, and rewriting it would let float error walk
    *  the strand off the scalp over a long session. */
-  _writeBack(g, f) {
-    const p = g.points, loc = this._local, inv = 1 / f.L;
-    for (let k = 1; k < SHAPE_POINTS; k++) {
-      const i = k * 3;
-      const vx = loc[i] - f.rx, vy = loc[i + 1] - f.ry, vz = loc[i + 2] - f.rz;
-      p[i]     = (vx * f.tx + vy * f.ty + vz * f.tz) * inv;
-      p[i + 1] = (vx * f.bx + vy * f.by + vz * f.bz) * inv;
-      // Scalp guard. Still a per-guide tangent half-space, still wants a real
-      // head SDF pushout once hair is long enough to drape — three-mesh-bvh is
-      // the right tool for that, and it is the one dependency worth taking.
-      //
-      // NOTE this clamp is a position edit OUTSIDE the constraint solve, so it
-      // can leave a near-root segment off rest length. That is the one known
-      // leak in the length invariant; lengthResidual() measures it rather than
-      // hiding it, and moving the head collision inside the solve loop (#10) is
-      // what closes it.
-      const zn = (vx * f.nx + vy * f.ny + vz * f.nz) * inv;
-      p[i + 2] = zn < 0 ? 0 : zn;
-    }
-  }
+  _writeBack(g, f) { writeGuide(g, f, this._local); }
 
   /**
    * Collide one guide against the capsule. Returns true if anything moved.

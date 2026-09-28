@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { assignViewerCamera, syncOrbitCamera } from './groomingCamera.js';
 
 const DIRECTIONS = {
   front: [0, 0, 1], back: [0, 0, -1],
@@ -42,11 +43,12 @@ export function createTechnicalView({ viewer, head, hair, onChange = () => {} })
   const overlays = [];
   const technicalMaterials = [];
   const emit = () => onChange(state);
+  const setCamera = (camera, options) => viewer.setCamera
+    ? viewer.setCamera(camera, options) : assignViewerCamera(viewer, camera, options);
   // r169 OrbitControls caches this camera-up basis at construction. A camera
   // swap/up change must update both halves or top-view drags hit its Y pole.
   const syncOrbitBasis = camera => {
-    viewer.controls._quat.setFromUnitVectors(camera.up, new THREE.Vector3(0, 1, 0));
-    viewer.controls._quatInverse.copy(viewer.controls._quat).invert();
+    syncOrbitCamera(viewer.controls, camera);
   };
   const cameraChanged = () => {
     if (!state.active || changingCamera || state.view === 'free') return;
@@ -77,7 +79,7 @@ export function createTechnicalView({ viewer, head, hair, onChange = () => {} })
 
   function enter() {
     if (state.active) return;
-    viewer.controls.update();
+    syncOrbitCamera(viewer.controls, viewer.camera);
     head.updateWorldMatrix(true, true);
     bounds = new THREE.Box3();
     for (const mesh of meshes) {
@@ -143,13 +145,10 @@ export function createTechnicalView({ viewer, head, hair, onChange = () => {} })
     viewer.renderer.toneMapping = THREE.NoToneMapping;
     viewer.renderer.localClippingEnabled = true;
     ortho = new THREE.OrthographicCamera(-radius, radius, radius, -radius, 0.001, radius * 100);
-    ortho.userData.technicalHalfHeight = radius * 1.25;
+    ortho.userData.viewHalfHeight = radius * 1.25;
     ortho.position.copy(center).add(viewer.camera.position.clone().sub(saved.target).normalize().multiplyScalar(radius * 4));
     ortho.lookAt(center);
-    viewer.camera = ortho;
-    viewer.controls.object = ortho;
-    syncOrbitBasis(ortho);
-    viewer.controls.target.copy(center);
+    setCamera(ortho, { target: center });
     // No residual damped grooming motion is allowed to displace a preset.
     viewer.controls.enableDamping = false;
     viewer.controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
@@ -187,10 +186,7 @@ export function createTechnicalView({ viewer, head, hair, onChange = () => {} })
     viewer.scene.environment = saved.environment;
     viewer.renderer.toneMapping = saved.toneMapping;
     viewer.renderer.localClippingEnabled = saved.clipping;
-    viewer.camera = saved.camera;
-    viewer.controls.object = saved.camera;
-    syncOrbitBasis(saved.camera);
-    viewer.controls.target.copy(saved.target);
+    setCamera(saved.camera, { target: saved.target });
     viewer.controls.enableDamping = saved.damping;
     viewer.controls.mouseButtons = saved.buttons;
     viewer._onResize();

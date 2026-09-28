@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Interactive guide-based GPU hair grooming simulator",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5177 --strictPort",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests"

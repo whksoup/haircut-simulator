@@ -1,0 +1,255 @@
+✖ camera assignment updates rendering, picking and subscribers atomically (6.6022ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.3726
+
+✖ failing tests:
+
+test at tests\grooming-camera.test.mjs:18:1
+✖ camera assignment updates rendering, picking and subscribers atomically (6.6022ms)
+  AssertionError [ERR_ASSERTION]: rendering and picking must receive the new camera
+  + actual - expected
+  ... Skipped lines
+  
+  + PerspectiveCamera {
+  - OrthographicCamera {
+      animations: [],
+  +   aspect: 1.6,
+  -   bottom: -1,
+      castShadow: false,
+      children: [],
+      coordinateSystem: 2000,
+      far: 100,
+  +   filmGauge: 35,
+  +   filmOffset: 0,
+  +   focus: 10,
+  +   fov: 45,
+      frustumCulled: true,
+      isCamera: true,
+      isObject3D: true,
+  +   isPerspectiveCamera: true,
+  -   isOrthographicCamera: true,
+      layers: Layers {
+        mask: 1
+      },
+  -   left: -1,
+      matrix: Matrix4 {
+        elements: [
+  +       0.9889363528682975,
+  +       -1.734723475976807e-18,
+  +       -0.14834045293024462,
+  -       1,
+          0,
+  +       -0.02878227557568771,
+  +       0.9809958925380221,
+  +       -0.19188183717125135,
+          0,
+  +       0.1455213750217998,
+  +       0.19402850002906646,
+  +       0.9701425001453319,
+          0,
+  +       0.30000000000000004,
+  +       0.4000000000000002,
+  +       1.9999999999999998,
+  -       0,
+          1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1
+        ]
+      },
+      matrixAutoUpdate: true,
+      matrixWorld: Matrix4 {
+        elements: [
+  +       0.9889363528682975,
+  +       -1.734723475976807e-18,
+  +       -0.14834045293024462,
+  -       1,
+          0,
+  +       -0.02878227557568771,
+  +       0.9809958925380221,
+  +       -0.19188183717125135,
+          0,
+  +       0.1455213750217998,
+  +       0.19402850002906646,
+  +       0.9701425001453319,
+          0,
+  +       0.30000000000000004,
+  +       0.4000000000000002,
+  +       1.9999999999999998,
+  -       0,
+          1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1
+        ]
+      },
+      matrixWorldAutoUpdate: true,
+      matrixWorldInverse: Matrix4 {
+        elements: [
+  +       0.9889363528682975,
+  +       -0.0287822755756877,
+  +       0.14552137502179976,
+  -       1,
+          0,
+  +       3.469446951953614e-18,
+  +       0.9809958925380221,
+  +       0.19402850002906646,
+          0,
+  +       -0.14834045293024464,
+  +       -0.19188183717125135,
+  +       0.9701425001453319,
+          0,
+  +       -5.204170427930421e-17,
+  +       -1.1102230246251565e-16,
+  +       -2.0615528128088303,
+  -       0,
+          1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1,
+  -       0,
+  -       0,
+  -       0,
+  -       0,
+  -       1
+        ]
+      },
+  +   matrixWorldNeedsUpdate: true,
+  -   matrixWorldNeedsUpdate: false,
+      name: '',
+      near: 0.01,
+      parent: null,
+      position: Vector3 {
+        x: 0.30000000000000004,
+  ...
+        elements: [
+  +       1.5088834764831844,
+  -       1,
+          0,
+          0,
+          0,
+          0,
+  +       2.414213562373095,
+  -       1,
+          0,
+          0,
+          0,
+          0,
+  +       -1.0002000200020003,
+  +       -1,
+  +       0,
+  +       0,
+          -0.020002000200020003,
+          0,
+  -       -0,
+  -       -0,
+  -       -1.0002000200020003,
+  -       1
+        ]
+      },
+      projectionMatrixInverse: Matrix4 {
+        elements: [
+  +       0.6627416997969521,
+  -       1,
+          -0,
+          -0,
+          -0,
+          -0,
+  +       0.41421356237309503,
+  -       1,
+          -0,
+          -0,
+          -0,
+          -0,
+  +       -0,
+          -49.995,
+          -0,
+          -0,
+  +       -1,
+  +       50.004999999999995
+  -       -0,
+  -       -50.005,
+  -       1
+        ]
+      },
+      quaternion: Quaternion {
+        _onChangeCallback: [Function: onQuaternionChange],
+  +     _w: 0.9975307888148199,
+  +     _x: -0.04950677197594294,
+  +     _y: 0.04975246767935078,
+  +     _z: 0.0024691810019904395,
+  -     _w: 1,
+  -     _x: 0,
+  -     _y: 0,
+  -     _z: 0,
+        isQuaternion: true
+      },
+      receiveShadow: false,
+      renderOrder: 0,
+  -   right: 1,
+      rotation: Euler {
+        _onChangeCallback: [Function: onRotationChange],
+        _order: 'XYZ',
+  +     _x: -0.09966865249116216,
+  +     _y: 0.09917726107940242,
+  +     _z: 0.00990115187117098,
+  -     _x: 0,
+  -     _y: 0,
+  -     _z: 0,
+        isEuler: true
+      },
+      scale: Vector3 {
+        x: 1,
+        y: 1,
+        z: 1
+      },
+  +   type: 'PerspectiveCamera',
+  -   top: 1,
+  -   type: 'OrthographicCamera',
+      up: Vector3 {
+        x: 0,
+        y: 1,
+        z: 0
+      },
+      userData: {},
+  +   uuid: '988366c4-5c76-4ccc-9dd5-19e7003fdcab',
+  -   uuid: '8343128d-0050-4526-9a00-4bc6a15643b0',
+      view: null,
+      visible: true,
+      zoom: 1
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/He%20Kai/haircut-simulator/tests/grooming-camera.test.mjs:25:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [PerspectiveCamera],
+    expected: [OrthographicCamera],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

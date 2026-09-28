@@ -1,0 +1,43 @@
+default visibility [
+  { id: 1, visible: false },
+  { id: 2, visible: false },
+  { id: 3, visible: false }
+]
+✔ default groom top-view sweep has a useful visible guide edit against actual GLB (67.1169ms)
+✔ brush useful contact keeps exact roots, tangent, length and settled segment lengths (4.7931ms)
+✔ visibility rejection before or after solve never rewrites guide points (0.9017ms)
+✔ carried spatial cadence is equal for 1, 8 and 64 events and drains long jumps (0.7688ms)
+✔ head visibility clips segment interiors in both cameras, allows silhouette misses and transforms (4.8571ms)
+✔ head shadow oracle agrees with actual head-only rays for rotated transformed geometry (13.5579ms)
+✔ a hidden middle segment stays exact while the visible suffix receives a useful edit (1.9124ms)
+✔ finite comb frame conversion retains exact root and historical scalp clamp (2.5721ms)
+{"fixture":"single-facet","selectedMove":0.17411170251880898,"excludedMove":0.016863754357394675,"rows":[0,1,2,1,0,2],"weights":[0.9965841770172119,0.0027606249786913395,0.0006552173872478306,0.8687258362770081,0.09652510285377502,0.03474903479218483],"lengthResidual":4.440892098500626e-16}
+{"fixture":"shared-guide-occlusion","nearMove":0.024958354161707035,"hiddenMove":0.02495835416170704}
+✔ feasibility: useful single-facet guide bend necessarily moves excluded blended strands, including after reload (6.6455ms)
+✔ feasibility: real head occlusion cannot isolate two strands sharing one guide (8.6554ms)
+✔ hold brush authors selected visible guides only; hover/stationary and empty masks are no-ops (35.3588ms)
+✔ 1, 8, 64 delivered events yield identical authored curves and long jumps do not skip hair (11.2331ms)
+✔ all owned interruptions finish once, leave no busy history and require a fresh press (17.2328ms)
+✔ canStyle prevents authored changes and dispose removes capture listeners (0.3352ms)
+✔ capsule near cap cannot edit guides behind either camera or crossing its near plane (2.0533ms)
+✔ cornered piecewise-linear strokes agree at 1, 8 and 64 subdivisions per leg (19.0405ms)
+✔ one long pointer jump edits every crossed guide region without skipped bands (18.1358ms)
+✔ two-of-three facet mask usefully edits both selected guides and preserves exclusion through history and reload (6.0076ms)
+✔ nearest local-Y heading snaps to 45 degrees while tilt stays exact in both camera types and transformed parents (11.686ms)
+✔ poles are finite and deterministic, with unchanged elevation (1.1388ms)
+✔ mapping intersects the snapped head-centered plane, including oblique camera rays (0.8025ms)
+✔ nonuniform, singular, mirrored and sheared head transforms reject explicitly (1.1412ms)
+✔ press displays cylinder without authoring; release reports idle and exact no-op history (11.3606ms)
+✔ oblique drag edits selected visible hair usefully under both projections and preserves history/invariants (24.225ms)
+✔ frame stays frozen across external camera/mesh changes and cylinder matches final capsule (9.5728ms)
+✔ all interruptions hide cylinder, finish once and do not resume a held pointer (22.6869ms)
+✔ unsafe plane mapping authors nothing and cylinder resources release exactly once (1.4072ms)
+✔ invalid head transform refuses press and retains useful status through inactive finish (0.8827ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 328.241

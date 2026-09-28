@@ -193,6 +193,7 @@ export class ScissorsTool {
 
     // --- gizmo ----------------------------------------------------------------
     this._tc = new TransformControls(viewer.camera, viewer.renderer.domElement);
+    this._offCameraChange = viewer.onCameraChange(camera => { this._tc.camera = camera; });
     this._tc.setMode('translate');
     this._tc.setSpace('local');
     this._tc.attach(this.object);
@@ -270,6 +271,7 @@ export class ScissorsTool {
 
   dispose() {
     this.disable();
+    this._offCameraChange();
     this._tc.removeEventListener('dragging-changed', this._onDraggingChanged);
     this._tc.removeEventListener('objectChange', this._onObjectChange);
     this._tc.detach();

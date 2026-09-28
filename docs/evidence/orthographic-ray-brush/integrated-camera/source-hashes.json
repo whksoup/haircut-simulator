@@ -1,0 +1,262 @@
+[
+  {
+    "path": "tests\\technical-view.test.mjs",
+    "sha256": "b9a46604923a4b60d813d1b5bc938f5d8199f035dceeeaeeecb4ac6dcff1f1d9"
+  },
+  {
+    "path": "tests\\seam-tool.test.mjs",
+    "sha256": "f4f6e369334bfdf5476976a1442f1169abf02ab184b575fe8193f64b469f5687"
+  },
+  {
+    "path": "tests\\seam-release.test.mjs",
+    "sha256": "7ab585b7452a9b015fdfbb883b4c14d87ad1c52acde45ced7de4350333a55dea"
+  },
+  {
+    "path": "tests\\seam-overlay.test.mjs",
+    "sha256": "f243b08fcc16ff1b32b04e4236ae121957bc0480e308b8fec837ce6d13494f9b"
+  },
+  {
+    "path": "tests\\seam-field.test.mjs",
+    "sha256": "5568775910890bee8174b2e4694b888cf93bc88b94328a3c7ad100a536a2c2a4"
+  },
+  {
+    "path": "tests\\seam-commit.test.mjs",
+    "sha256": "f4f323e17054857d7ab95a05da04a5cd766566c45703262344bde7cc93064970"
+  },
+  {
+    "path": "tests\\ray-brush-isolation-feasibility.test.mjs",
+    "sha256": "44b141ce3e12b9eacb7f619749b89f87bdc80d2806f399d5464a0619237d41fe"
+  },
+  {
+    "path": "tests\\history.test.mjs",
+    "sha256": "78965c0429def6653288fdc9e0e0c8f91c1e3b389b94d71ed8c03d92b7cec5b0"
+  },
+  {
+    "path": "tests\\growth.test.mjs",
+    "sha256": "80a2437c8bac93f725c779fed86ae4f1e9499d1b261fc327804369ef6f94f273"
+  },
+  {
+    "path": "tests\\growth-preview.test.mjs",
+    "sha256": "723ba102307facf087b003172777955d4f2e8a91391e7104c7ebddde372e46d6"
+  },
+  {
+    "path": "tests\\grooming-camera.test.mjs",
+    "sha256": "213eb05e2e6f6b17f751b0c2fdab0e3a8325ac33686fa1ddcca9428730e32008"
+  },
+  {
+    "path": "tests\\console.test.mjs",
+    "sha256": "a13aa7c2bbfeada124b23d16a9f1e11e15291ee53ab1cdf67efe6ec881d2de7a"
+  },
+  {
+    "path": "src\\tools\\seamTool.js",
+    "sha256": "3c5ea05539bb2c2520b8954927f6feddfaa613f439c9d937d4459c3ddc3fcfd7"
+  },
+  {
+    "path": "src\\tools\\scissorsTool.js",
+    "sha256": "6894fb9838f0d9b3b930ad39e6395e2ecf5769c9dd055e694c5881eb87329a98"
+  },
+  {
+    "path": "src\\tools\\raycast.js",
+    "sha256": "57aff63f54335a34fa38edbfb7cd561afa55f462305f62f4dfcb83ca42126a5d"
+  },
+  {
+    "path": "src\\tools\\combTool.js",
+    "sha256": "fd1799ea7c708c0b9dee87e28566a1a21b83fc3d0eccfb5a1057181664ed552a"
+  },
+  {
+    "path": "tests\\browser\\vite-technical.config.mjs",
+    "sha256": "bac99be733f42d71251af85ba9cb16a84e788d16d9e68a1621504bbfdad7adea"
+  },
+  {
+    "path": "tests\\browser\\vite-orb.config.mjs",
+    "sha256": "e00b34477900e29cde63d9eba862f590a6f8060c659c2b44c8a6ccceaeb71a7d"
+  },
+  {
+    "path": "tests\\browser\\vite-evidence.config.mjs",
+    "sha256": "e4fd2afdbe60ef634fde534163e24f691870f135284e2d24c5cb43ea1b9d3bc3"
+  },
+  {
+    "path": "tests\\browser\\technical.html",
+    "sha256": "d8a5c529bf2cbdf25159104d94b6c78b55470128855ab3ec2efa41cbec908d0e"
+  },
+  {
+    "path": "tests\\browser\\technical-run.js",
+    "sha256": "0b01d325b5b8fc8debf034831c89ef46bc866ceb5d923165f680f7d0bcbb55fd"
+  },
+  {
+    "path": "tests\\browser\\orb.html",
+    "sha256": "69fc35d4c8bf55e580217b8a591a1ec50fd403e4d0d08aa6053a192f3bff60b2"
+  },
+  {
+    "path": "tests\\browser\\orb-run.js",
+    "sha256": "86ce73316ba9387ad8078493dec4444434f17ca433510cab96c8909310a45ecd"
+  },
+  {
+    "path": "tests\\browser\\growth.html",
+    "sha256": "ae9e47991276e5f6faaa2488b5b034269dc0fe48a9ac23500e06593e026cb4c4"
+  },
+  {
+    "path": "tests\\browser\\growth-run.js",
+    "sha256": "a2ff9fb305c7769158d08bd80c7486b11c42eb6ba2e05d72999be2d21030faa8"
+  },
+  {
+    "path": "tests\\browser\\growth-review.html",
+    "sha256": "470a88fba39ea2ddd1756f5d6c8707449299225d43d572034d38445ffa537d00"
+  },
+  {
+    "path": "tests\\browser\\growth-evaluation.js",
+    "sha256": "a64f72601706694609716c89cb98252ca2adb011864bc9b8445b17e7821b6ef6"
+  },
+  {
+    "path": "tests\\adjacency.test.mjs",
+    "sha256": "8fef70c5c20afd4172643e66fb47d71b4f16ff4c1a054e623ea5f17b15adfc17"
+  },
+  {
+    "path": "src\\scene\\viewer.js",
+    "sha256": "f3d06ebef3fb761ec4fc857bfe193222ce26a899f6ab6a53cc45d14107c661df"
+  },
+  {
+    "path": "src\\scene\\technicalView.js",
+    "sha256": "dd711f15a7656dae39baf196b12105a9a21c17d60757b0176ffb0eba99024ac3"
+  },
+  {
+    "path": "src\\scene\\loadHead.js",
+    "sha256": "bead6f3fc1f0b05b8edf09c64d574906d7f7a31ebfc390fcf14a596a818d58ce"
+  },
+  {
+    "path": "src\\scene\\groomingCamera.js",
+    "sha256": "0fc95a457f9292bb08fb93b05cb4396e1f917d8c9a6c269e5e48a704188554c3"
+  },
+  {
+    "path": "src\\scene\\facetWireframe.js",
+    "sha256": "bc359d847f45655e61ea31668d97fde3773faeb3e5d0c6afc181964e0186a25c"
+  },
+  {
+    "path": "src\\rendering\\strandSampler.js",
+    "sha256": "29e0f9368c8107a2470af1678a4d4802c389733f717d9d5adae1d15034f315b8"
+  },
+  {
+    "path": "src\\rendering\\renderer.js",
+    "sha256": "892399e5287e0205ee28670b3d451316eb6059e512cb0880687ad57e32d29902"
+  },
+  {
+    "path": "src\\rendering\\legacy\\strands.js",
+    "sha256": "af614e6ce9aa0f7ab76a621d0f748294fb580dc42b79b0a8d7a3b7f40c81c2ba"
+  },
+  {
+    "path": "src\\rendering\\legacy\\README.md",
+    "sha256": "3f1e858ac2e901e63a15dfbb3b19a078f77a7da60c58cee063384e9729cebb5f"
+  },
+  {
+    "path": "src\\rendering\\legacy\\hairShader.js",
+    "sha256": "bb51f21d239ce87bcfeaa6087666788e159094b72da5180e1540831c1278ea16"
+  },
+  {
+    "path": "src\\rendering\\legacy\\gpuHair.js",
+    "sha256": "f19f4be0cdcfc769a66b8cfdaac9160819a530afa624d7403f92ddda148a2069"
+  },
+  {
+    "path": "src\\rendering\\gpu\\seamField.js",
+    "sha256": "20fd49117191f006790a2e7d7da5921f893c90a0fae900ebc475885b09c585a0"
+  },
+  {
+    "path": "src\\rendering\\gpu\\hairShaderGuides.js",
+    "sha256": "04fc14cc43b813e8345a5787e2afe85476241a300224df2d5ca6f66383d3a0ad"
+  },
+  {
+    "path": "src\\rendering\\gpu\\guideBinding.js",
+    "sha256": "d495798973437aea39b52eb8fc0d12a1b62c3b1548dec7d37dd6e6df62c1fbe1"
+  },
+  {
+    "path": "src\\rendering\\gpu\\gpuHairR3.js",
+    "sha256": "d86f65c4bc8e1dd2c95c9e9ece4e8870129b6a2ccfb5da6cfa15f873a6634352"
+  },
+  {
+    "path": "src\\hair\\strandShape.js",
+    "sha256": "4ca536b1cc9475746311a34867072f69cafdbe0c4c63ea0842e92d89bc544abc"
+  },
+  {
+    "path": "src\\hair\\strandResample.js",
+    "sha256": "782e91c980cf70b1a629cb1d6d035739037895ffbefda61103fd8261b6468c3c"
+  },
+  {
+    "path": "src\\hair\\strandCut.js",
+    "sha256": "2782f01476cbfbd6a49b236e858288404b4d859f015e1aa3895b7785877cd280"
+  },
+  {
+    "path": "src\\hair\\strandConstraints.js",
+    "sha256": "ced881e098d7af17974c0dbd244bea830725e61a90113ff7356c993520f997e8"
+  },
+  {
+    "path": "src\\hair\\guideLengthAudit.js",
+    "sha256": "bb76f40a83c860305cacd3d9f51ad6e2106aa31f821806be07985e333b160608"
+  },
+  {
+    "path": "src\\hair\\growthPreview.js",
+    "sha256": "4b30031f74f4ab860c5b78e903e06c6a236d0de4fcd9e9b7d8c2b48b5c2b4f75"
+  },
+  {
+    "path": "src\\hair\\growthModel.js",
+    "sha256": "3cafc563042582339ce42279bfb61236d6c9d809f02c2e85e314493efb56b4a9"
+  },
+  {
+    "path": "src\\hair\\cutSession.js",
+    "sha256": "35a4e8a61432cf14ad28a081d125572eb3a1a9bc295a72c211f299cf443e247e"
+  },
+  {
+    "path": "src\\groom\\seams.js",
+    "sha256": "97e37ad8420dafb24b06f84af97bff09be0c218173f8ee0e6af1824bd17ed8c1"
+  },
+  {
+    "path": "src\\groom\\schemaGuards.js",
+    "sha256": "d2f8e6820cfaf3c8a1a5a5d04e3a007f2061cd7d097b54edaa96cb6cff4ca546"
+  },
+  {
+    "path": "src\\groom\\guides.js",
+    "sha256": "11a2364a95f36acf2209a215950d19d25ce7218ef492719fcd27d18515895025"
+  },
+  {
+    "path": "src\\groom\\groom.js",
+    "sha256": "63221bcf27d3909b0d2f987615239260c3e5a22b104545c40a2349cebefc809c"
+  },
+  {
+    "path": "src\\debug\\seamOverlay.js",
+    "sha256": "3fd8fe16994f2efebe9ab48d8fd402bfe8d1d33f21203079a305a090edf0950f"
+  },
+  {
+    "path": "src\\debug\\GuideDebugView.js",
+    "sha256": "93dc20096e6e12cf83dd4e10c3cf628f335762a070cf2dd6dc2c706dbfb89d3e"
+  },
+  {
+    "path": "src\\debug\\growthCapture.js",
+    "sha256": "6d079f069ed116cc609e91df48b985228c1b0682cc4b882cfd746369a16b3de4"
+  },
+  {
+    "path": "src\\app\\ui.js",
+    "sha256": "821c95318161c26ea168f102ab2904ad88c75cbe064259001ca6bc405987a572"
+  },
+  {
+    "path": "src\\app\\technicalViewUI.js",
+    "sha256": "67ceaecfffe2da403c4c09f56b868d1662f8e8f15edd68aa076dba41fbe119db"
+  },
+  {
+    "path": "src\\app\\technicalView.css",
+    "sha256": "d60b0d4d97fb60193c9a013f10c7a599239b1a2a1011cf1b0f364a03eda6a49c"
+  },
+  {
+    "path": "src\\app\\main.js",
+    "sha256": "0762c2d8e8a7bb5215e15983ed12bdb5e29a40d8475f8679f13453cfc951c59d"
+  },
+  {
+    "path": "src\\app\\history.js",
+    "sha256": "360b118feb3ba20b257c929c0cb17a6c87915b3c4c4b6d12d9af959fc7dcf437"
+  },
+  {
+    "path": "src\\app\\growthPreview.js",
+    "sha256": "53688db684306bc7a1dde58fe35a286a34284c2ef187ad3b74886cee215df4d4"
+  },
+  {
+    "path": "src\\app\\defaultGroom.js",
+    "sha256": "be348ac94f378a8d4c534fbf2531674ae6df03f2d17fa2e4d5f0c4c728ac69d3"
+  }
+]

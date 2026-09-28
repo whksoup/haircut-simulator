@@ -85,18 +85,21 @@ export class Raycast {
     this.enabled = true;
     this.mesh.material.vertexColors = true;
     this.mesh.material.needsUpdate  = true;
+    for (const id of this.selection) this._paintFacet(id, SELECT_COLOR);
     this.viewer.renderer.domElement.addEventListener('pointerdown', this._onPointerDown);
     console.info('[Raycast] enabled —', this._catalogue ? 'quad mode' : 'triangle fallback');
   }
 
-  disable() {
+  disable({ preserveSelection = false } = {}) {
     if (!this.enabled) return;
     this.enabled = false;
     this.viewer.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown);
     // Drop the selection highlight; hair (strands) is unaffected.
     for (const id of this.selection) this._paintFacet(id, BASE_COLOR);
-    this.selection.clear();
-    this.activeFacetId = -1;
+    if (!preserveSelection) {
+      this.selection.clear();
+      this.activeFacetId = -1;
+    }
     this.mesh.material.vertexColors = false;
     this.mesh.material.needsUpdate  = true;
     console.info('[Raycast] disabled');

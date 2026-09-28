@@ -1,0 +1,39 @@
+✔ camera assignment updates rendering, picking and subscribers atomically (3.5091ms)
+✔ twenty projection round trips preserve target-plane landmarks with pan, zoom and resize (2.7505ms)
+✔ six grooming presets are orthographic and both pole presets escape into free orbit (1.2428ms)
+✔ Technical borrows the camera and returns orthographic identity, pose, zoom and target (4.6125ms)
+✔ camera swaps discard residual damping without moving the saved pose (0.6458ms)
+✖ real OrbitControls pan moves the same CSS distance after magnified projection changes (1.1908ms)
+✔ cut planes divide translated bounds along every axis, with complementary sides (0.801ms)
+✔ technical entry and repeated return preserve material, geometry, camera identity and scene settings (6.8788ms)
+✔ head and reconstructed hair share a world-space clipping half-space for every axis and side (1.0341ms)
+✔ six presets are axis aligned and orbiting away marks free view (1.2246ms)
+✔ a downward orbit gesture leaves both pole presets without hitting a polar clamp (0.8355ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 138.3664
+
+✖ failing tests:
+
+test at tests\grooming-camera.test.mjs:136:1
+✖ real OrbitControls pan moves the same CSS distance after magnified projection changes (1.1908ms)
+  AssertionError [ERR_ASSERTION]: perspective pan at prior orthographic zoom 4
+      at TestContext.<anonymous> (file:///C:/Users/He%20Kai/haircut-simulator/tests/grooming-camera.test.mjs:156:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -1,0 +1,40 @@
+# ORB-3 — Build/review acceptance contract
+
+2026-09-28 (Asia/Singapore). Task scope: orthographic-ray-brush v3. The user accepted existing guide-based masking. ORB-3 replaces ORB-2's strict rendered-strand isolation with authored-guide eligibility; the remaining criteria and Astra/medium build-review authorization continue.
+
+## Decision rule
+
+All criteria below are mandatory. Grade each **pass**, **fail**, or **insufficient evidence**. There is no weighted average and no not-applicable exemption. All must pass for phase acceptance. A reviewed component may proceed to integration with its own criteria passing, but that is not phase acceptance. Unknowns, blocked feasibility, missing browser evidence and known failures remain explicit.
+
+Review clarification: C2 requires the exact pre-Technical camera object to be restored. Projection round-trip landmark comparisons use matching viewport dimensions; resize correctness is evaluated separately. The user's scope v3 decision explicitly accepts interpolation influence on neighboring rendered hair, including shared-guide influence behind the head. The brush still must not directly edit hidden or out-of-mask guides. No individual-strand authored layer or schema change is required. Prior camera review results remain relevant; brush feasibility tests document why this distinction matters.
+
+One initial independent review and one correction/review round per implementation slice are authorized. If a material criterion remains unresolved, the coordinator records the exact defect or scope conflict, continues independent work and decides the next bounded action; do not loop blindly or weaken the rubric. Source changes invalidate affected previous grades.
+
+## Criteria
+
+| ID | Success criterion | Required evidence and threshold |
+| --- | --- | --- |
+| C1 | Useful orthographic grooming | Ordinary lighting/materials and styling remain available. Perspective/orthographic control and six named presets work. An actual finite-comb stroke changes hair and undoes in orthographic mode; camera-only changes leave authored JSON and history unchanged. |
+| C2 | Correct camera handoff | Twenty projection round trips preserve target-plane landmark positions within 1 CSS px, with pan/zoom and resize. Each preset direction has vector error <= 1e-5; top/bottom orbit escapes work. Picking and both gizmos use the current camera. Technical view restores projection, camera identity where applicable, pose, zoom and tool; Brush returns inactive. Numeric tests plus real-controls/browser evidence. |
+| B1 | Hold-to-brush interaction | Hover and stationary press/release author nothing. Held movement visibly edits eligible hair, release stops, and inactive movement does not edit. Footprint/state/radius and All/Selected modes are legible. A representative intended stroke moves an eligible guide/strand by >= 0.005 of its original length so a do-nothing implementation cannot pass. Real pointer trace and before/during/after images under both projections. |
+| B2 | Head blocks direct guide editing | Actual head surfaces gate candidate guide contacts across the footprint. Near/far aligned guides, off-center depth discontinuity, silhouette miss, partial occlusion, long hair and transformed head cases. Hidden authored guides/portions remain bitwise unchanged; conservative rejection of a partly hidden guide is permitted. Visible hair outside the head silhouette remains editable. Check during/after release and reload. Shared-guide effects on reconstructed strands are an accepted limitation, not a failure; record a representative example honestly. |
+| B3 | Selected-facet guide mask | Selection is the guide-root facet. Single-facet and multi-facet fixtures produce a useful guide edit inside the selection while all excluded authored guides remain bitwise unchanged. Empty selected mask edits nothing. Copied mask is stable when ordinary selection changes; no automatic unrestricted fallback. Include undo/redo and save/load. Neighboring rendered strands can inherit changes through their existing guide blends; no strict rendered boundary is promised. |
+| B4 | Hair invariants and sampling | Roots remain exact; lengths/tangents remain consistent with normalized guide frames; settled fixtures pass existing LENGTH_TOL=1e-3 without loosening it. Same piecewise-linear path delivered at 1, 8 and 64 subdivisions yields max normalized-point difference <= 1e-5. A long jump crosses every contacted region. No edits from idle render frames. Record scalp-contact baseline separately; a new failing representative brush fixture blocks acceptance. |
+| B5 | Stroke ownership and history | Exactly one undo entry per changed press-drag-release; zero per no-op; undo/redo restores complete authored state. Release outside, canvas exit, pointercancel/lost capture, blur/hidden tab, Escape, tool switch, navigation, preset/projection, Technical entry, growth entry, undo/redo and valid load finish exactly once. No abandoned busy history or resumed edit with an already-held button. Invalid load preserves the old groom. Save captures settled authored state. |
+| I1 | State and rendering contracts | Preserve GuideStore/SeamStore identities, migrations and authored-vs-derived boundaries. Styling changes update affected guide rows without a per-move rebuild/rebind. Growth preview does not alter authored data and disables Brush. Camera/mask settings are absent from groom JSON. Keep the existing authored guide model/schema and guide-patch history. |
+| I2 | Existing tools remain usable | Browser checks under both projections: initial head/hair; pick/add/remove; finite comb; brush; a cut that measurably shortens hair; seam edit; undo/redo; save/load. Run at 1440x900 and 1024x768 CSS px. Native download and file-picker delivery need actual delivery evidence if claimed; synthetic callback coverage must be labeled. |
+| I3 | Responsive brushing | Same host/browser, default fixture/seed, viewport 1440x900, recorded guide/strand counts. Warm up 5s, sample a scripted 10s brush sweep for 3 runs. Report per-run p95 frame interval and p95/p99 pointer-to-guide-update duration. Candidate p95 frame interval <= max(33.3ms, 1.25 * matched baseline p95); update p95 <= 16.7ms and p99 <= 50ms. Report camera-only baseline separately. If hardware/environment prevents valid comparison, mark insufficient evidence rather than guessing. |
+| I4 | Combined-source verification | Meaningful focused RED/GREEN or characterization evidence; all new tests pass. Full suite/build on assembled source; no new failures beyond console, seam-commit, seam-release and seam-tool unless an original failure is explicitly fixed with rationale. Existing >500kB build warning is reported. No skipped tests or weakened assertions. |
+
+## Evidence package
+
+Use `docs/evidence/orthographic-ray-brush/` and clearly separate baseline, camera slice, brush slice and integrated rounds. Record git revision plus dirty-file hashes, producing command/scenario, local date, fixture/seed, active camera/projection, viewport, browser/runtime and machine details relevant to performance. Screenshots establish static appearance only; interaction and responsiveness require traces or recordings. Link each review finding to actual evidence/source. Never overwrite earlier Technical/Growth evidence.
+
+## Roles and loop
+
+- Coordinator: scope/rubric, shared `src/app/main.js`/`ui.js`, integration, documentation and final acceptance.
+- Camera builder: scene camera path, existing tool camera consumers, focused tests and camera evidence.
+- Brush architect/builder: isolation feasibility first, then brush-domain/tool implementation within an agreed contract, focused tests and evidence.
+- Independent reviewer: read-only contract and acceptance review; no fixes or new state-changing captures. Request missing evidence from the implementer/coordinator.
+
+All delegated agents use **gpt-6-astra, medium reasoning** as requested. They share this checkout and preserve one another's work. App wiring/docs have one writer. The brush design gate precedes brush implementation; camera work can proceed meanwhile.

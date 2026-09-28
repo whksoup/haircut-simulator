@@ -34,8 +34,10 @@ import { History }              from './history.js';
 import { buildUI }              from './ui.js';
 import { Raycast }              from '../tools/raycast.js';
 import { CombTool }             from '../tools/combTool.js';
+import { SnappedBrushTool }     from '../tools/snappedBrushTool.js';
 import { ScissorsTool }         from '../tools/scissorsTool.js';
 import { GuideDebugView } from '../debug/GuideDebugView.js';
+import { BrushMaskOverlay } from '../debug/brushMaskOverlay.js';
 import { SeamOverlay }          from '../debug/seamOverlay.js';
 import { SeamTool }             from '../tools/seamTool.js';
 import { seedSeamsFromCreases } from '../groom/seams.js';
@@ -44,6 +46,7 @@ import { createGrowthPreview } from './growthPreview.js';
 import { applyDefaultGroom }    from './defaultGroom.js';
 import { createTechnicalView } from '../scene/technicalView.js';
 import { createTechnicalViewUI } from './technicalViewUI.js';
+import { createGroomingCamera } from '../scene/groomingCamera.js';
 
 async function main() {
   const container = document.getElementById('app');
@@ -138,10 +141,18 @@ async function main() {
     : null;
 
   const runtime = {};
+  let brush = null;
+  let brushMaskOverlay = null;
+  function syncBrushOverlay() {
+    if (!brushMaskOverlay || !brush) return;
+    brushMaskOverlay.setMask(brush.mask);
+    brushMaskOverlay.setVisible(brush.enabled && brush.mask !== null && canStyle());
+  }
   let syncGrowthPreview = () => {};
   const growthPreview = createGrowthPreview({
     renderer,
     finishEditing: () => {
+      brush?.finishEditing('growth');
       comb.finishEditing();
       scissors.finishEditing();
       seamTool?.endEdit();
@@ -155,9 +166,39 @@ async function main() {
     sync: () => syncGrowthPreview(),
   });
   let technicalActive = false;
+  let syncGroomingCamera = () => {};
+  const groomingCamera = createGroomingCamera({ viewer, onChange: () => syncGroomingCamera() });
   const canStyle = () => !technicalActive && growthPreview.canStyle();
   renderer.canStyle = canStyle;
   const setGrowthFraction = (value) => growthPreview.set(value);
+  function finishGroomingGestures() {
+    brush?.finishEditing('application');
+    comb.finishEditing();
+    scissors.finishEditing();
+    seamTool?.endEdit();
+    for (const key of ['density', 'length']) history.commitMark(`globals.${key}`, key);
+    history.commitMark('masterSeed', 'master seed');
+    return !history.busy;
+  }
+  function setGroomingProjection(projection) {
+    if (technicalActive || !finishGroomingGestures()) return false;
+    return groomingCamera.setProjection(projection);
+  }
+  function setGroomingView(view) {
+    if (technicalActive || !finishGroomingGestures()) return false;
+    return groomingCamera.setView(view);
+  }
+  function serializeGroom() {
+    if (!finishGroomingGestures()) return null;
+    return groom.serialize();
+  }
+  function runHistoryAction(action) {
+    if (!['undo', 'redo'].includes(action) || !canStyle() || !finishGroomingGestures()) return null;
+    const label = history[action]();
+    log(label ? `${action}: ${label}` : `nothing to ${action}`);
+    refreshStats();
+    return label;
+  }
   Object.defineProperty(runtime, 'growthFraction', { enumerable: true, get: () => growthPreview.fraction });
 
   // Forward-declared: the history restore path and the hair actions below all
@@ -294,11 +335,13 @@ async function main() {
 
   function addHairToSelection() {
     if (!canStyle()) return false;
+    brush?.finishEditing('add hair');
     return history.transact('add hair', () => _addHairToSelection());
   }
 
   function removeHairFromSelection() {
     if (!canStyle()) return false;
+    brush?.finishEditing('remove hair');
     return history.transact('remove hair', () => _removeHairFromSelection());
   }
 
@@ -408,6 +451,7 @@ async function main() {
    */
   function seedSeams(opts = {}) {
     if (!canStyle()) return false;
+    brush?.finishEditing('seams');
     if (!catalogue) return false;
     return history.transact('seed seams', () => {
       const r = seedSeamsFromCreases(catalogue, groom.seams, opts);
@@ -450,6 +494,7 @@ async function main() {
   /** Wall off the current selection: every edge on its outline becomes hard. */
   function sealSelectionBorder(permeability = 0) {
     if (!canStyle()) return false;
+    brush?.finishEditing('seams');
     if (!catalogue || raycast.selection.size === 0) return false;
     return history.transact('seal selection border', () => {
       const eids = raycast.boundaryEdgesOfSelection();
@@ -466,6 +511,7 @@ async function main() {
   /** Reopen every boundary touching the selection. The eraser. */
   function openSelectionSeams() {
     if (!canStyle()) return false;
+    brush?.finishEditing('seams');
     if (!catalogue || raycast.selection.size === 0) return false;
     return history.transact('open seams', () => {
       let n = 0;
@@ -484,6 +530,7 @@ async function main() {
 
   function clearAllSeams() {
     if (!canStyle()) return false;
+    brush?.finishEditing('seams');
     return history.transact('clear seams', () => {
       const n = groom.seams.count;
       if (n === 0) return false;
@@ -547,6 +594,16 @@ async function main() {
     onStrokeEnd:   (ids) => history.commitStroke('cut', ids),
   });
 
+  brush = new SnappedBrushTool({
+    viewer, mesh: groomTarget, guides: groom.guides, canStyle,
+    onEdit: (ids) => { renderer.setGuides(ids); guideDebug.refresh(ids); },
+    onStrokeBegin: () => history.beginStroke(),
+    onStrokeEnd: (ids) => history.commitStroke('brush', ids),
+    onStateChange: () => { syncBrushOverlay(); syncGrowthPreview(); },
+  });
+  brushMaskOverlay = new BrushMaskOverlay({ mesh: groomTarget, catalogue });
+  groomTarget.add(brushMaskOverlay.object);
+
   // --- Tool arbitration -----------------------------------------------------
   // Raycast, the comb, the seam tool and the scissors all want pointerdown and
   // all want to suspend OrbitControls. Exactly one may be live; this is the
@@ -564,15 +621,18 @@ async function main() {
     if (technicalActive && next !== 'none') return false;
     if (!canStyle() && !['none', 'pick'].includes(next)) { syncGrowthPreview(); return false; }
     if (next === activeTool) return;
-    if (activeTool === 'pick')     raycast.disable();
+      if (activeTool === 'pick')     raycast.disable({ preserveSelection: next === 'brush' });
     if (activeTool === 'comb')     comb.disable();
     if (activeTool === 'seam')     seamTool?.disable();
     if (activeTool === 'scissors') scissors.disable();
-    activeTool = next;
+    if (activeTool === 'brush') { brush?.finishEditing('tool-change'); brush?.setEnabled(false); }
+      activeTool = next;
     if (next === 'pick')     raycast.enable();
     if (next === 'comb')     comb.enable();
     if (next === 'seam')     seamTool?.enable();
     if (next === 'scissors') scissors.enable();
+      if (next === 'brush')    brush?.setEnabled(true);
+      syncBrushOverlay();
     // The seam overlay is the seam tool's viewport. Force it on entering the
     // tool — clicking edges you cannot see is not a workflow — but do not
     // force it off on leaving, since inspecting the parting while combing is
@@ -638,6 +698,7 @@ async function main() {
   function loadGroom(next) {
       next = Groom.fromJSON(next instanceof Groom ? next.toJSON() : next);
       // Validation happens before this callback; finish tools against the old groom.
+      brush?.finishEditing('load');
       comb.finishEditing(); scissors.finishEditing(); seamTool?.endEdit();
       setActiveTool('none'); renderer.setComb?.(null);
       groom.copyFrom(next);
@@ -664,7 +725,10 @@ async function main() {
     renderer,
     runtime,
     canStyle, setGrowthFraction, getActiveTool: () => activeTool,
+    groomingCamera, setGroomingProjection, setGroomingView,
+    canNavigateGrooming: () => !technicalActive,
     comb,
+    brush, serializeGroom, runHistoryAction,
     scissors,
     guideDebug,
     history,
@@ -678,6 +742,7 @@ async function main() {
     seamFromFacetPair,
     setSyncHooks: (hooks) => {
       syncGrowthPreview = hooks.syncGrowthPreview ?? (() => {});
+      syncGroomingCamera = hooks.syncGroomingCamera ?? (() => {});
       syncOverlayToggle = hooks.syncOverlayToggle ?? null;
       syncSeamSlider    = hooks.syncSeamSlider ?? null;
       syncSeamEditMode  = hooks.syncSeamEditMode ?? null;
@@ -707,6 +772,7 @@ async function main() {
   let inspectionRestore = null;
   function enterTechnicalView() {
     if (technicalActive) return true;
+    brush?.finishEditing('technical');
     comb.finishEditing(); scissors.finishEditing(); seamTool?.endEdit();
     for (const key of ['density', 'length']) history.commitMark(`globals.${key}`, key);
     history.commitMark('masterSeed', 'master seed');
@@ -719,6 +785,7 @@ async function main() {
     for (const object of overlays) object.visible = false;
     technicalActive = true;
     technicalView.enter();
+    syncGroomingCamera();
     technicalUI.setActive(true);
     syncGrowthPreview();
     return true;
@@ -727,6 +794,7 @@ async function main() {
     if (!technicalActive) return;
     technicalView.exit();
     technicalActive = false;
+    syncGroomingCamera();
     for (const [object, visible] of inspectionRestore.overlays) object.visible = visible;
     setActiveTool(inspectionRestore.previousTool);
     inspectionRestore = null;
@@ -755,6 +823,11 @@ async function main() {
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (technicalActive) { e.preventDefault(); e.stopImmediatePropagation(); exitTechnicalView(); return; }
+    if (brush?.active) {
+      brush.finishEditing('escape');
+      e.preventDefault(); e.stopImmediatePropagation();
+      return;
+    }
 
     // 1. Step out of the permeability field, then out of the edge selection.
     const backedOut = seamTool?.cancel?.();
@@ -822,15 +895,7 @@ async function main() {
     if (!want) return;
 
     e.preventDefault();
-    // Mid-gesture the model is between states and the pre-capture is still
-    // open; undoing into that would record the half-finished pose as the
-    // baseline. Refuse rather than guess.
-    if (!canStyle()) return;
-    if (history.busy) { log('undo: busy (finish the stroke first)'); return; }
-
-    const label = want === 'undo' ? history.undo() : history.redo();
-    log(label ? `${want}: ${label}` : `nothing to ${want}`);
-    refreshStats();
+    runHistoryAction(want);
   });
 
   // --- Initial build --------------------------------------------------------
@@ -885,8 +950,9 @@ async function main() {
   const api = {
     viewer, groom, groomTarget, catalogue, raycast, renderer, comb, scissors,
     guideDebug, runtime, history,
-    canStyle, setGrowthFraction, loadGroom,
+    canStyle, setGrowthFraction, loadGroom, serializeGroom, runHistoryAction, brush,
     technicalView, enterTechnicalView, exitTechnicalView,
+    groomingCamera, setGroomingProjection, setGroomingView,
     seamOverlay, seamTool, seedSeams, sealSelectionBorder, openSelectionSeams, clearAllSeams,
     topology: () => catalogue?.topology,
     addHairToSelection, removeHairFromSelection, setActiveTool,

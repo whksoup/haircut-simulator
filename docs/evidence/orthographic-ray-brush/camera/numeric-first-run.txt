@@ -1,0 +1,76 @@
+✔ camera assignment updates rendering, picking and subscribers atomically (2.3392ms)
+✔ twenty projection round trips preserve target-plane landmarks with pan, zoom and resize (2.5966ms)
+✔ six grooming presets are orthographic and both pole presets escape into free orbit (0.8064ms)
+✖ Technical borrows the camera and returns orthographic identity, pose, zoom and target (5.4117ms)
+✖ camera swaps discard residual damping without moving the saved pose (0.4008ms)
+✔ cut planes divide translated bounds along every axis, with complementary sides (0.7767ms)
+✔ technical entry and repeated return preserve material, geometry, camera identity and scene settings (5.577ms)
+✔ head and reconstructed hair share a world-space clipping half-space for every axis and side (0.9753ms)
+✔ six presets are axis aligned and orbiting away marks free view (1.2416ms)
+✔ a downward orbit gesture leaves both pole presets without hitting a polar clamp (0.6883ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 8
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 116.9357
+
+✖ failing tests:
+
+test at tests\grooming-camera.test.mjs:88:1
+✖ Technical borrows the camera and returns orthographic identity, pose, zoom and target (5.4117ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Vector3 {
+  +   x: 0.09999999999999999,
+  +   y: 0.19999999999999998,
+  -   x: 0.1,
+  -   y: 0.2,
+      z: 0
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/He%20Kai/haircut-simulator/tests/grooming-camera.test.mjs:116:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { x: 0.09999999999999999, y: 0.19999999999999998, z: 0 },
+    expected: { x: 0.1, y: 0.2, z: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\grooming-camera.test.mjs:122:1
+✖ camera swaps discard residual damping without moving the saved pose (0.4008ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Vector3 {
+  +   x: 0.1,
+  +   y: 0.2,
+  -   x: 0.09999999999999999,
+  -   y: 0.19999999999999998,
+      z: 0
+    }
+  
+      at TestContext.<anonymous> (file:///C:/Users/He%20Kai/haircut-simulator/tests/grooming-camera.test.mjs:133:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { x: 0.1, y: 0.2, z: 0 },
+    expected: { x: 0.09999999999999999, y: 0.19999999999999998, z: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,162 @@
+[
+  {
+    "path": "src\\tools\\seamTool.js",
+    "sha256": "3c5ea05539bb2c2520b8954927f6feddfaa613f439c9d937d4459c3ddc3fcfd7"
+  },
+  {
+    "path": "src\\tools\\scissorsTool.js",
+    "sha256": "9c206d54946e8e53891b815c8159ce00be9ccd30294bf13a5934153526d3e845"
+  },
+  {
+    "path": "src\\tools\\raycast.js",
+    "sha256": "57aff63f54335a34fa38edbfb7cd561afa55f462305f62f4dfcb83ca42126a5d"
+  },
+  {
+    "path": "src\\tools\\combTool.js",
+    "sha256": "bdc860f7bc57feb5293a2033aa5262a4f89509734f8ca8780e0b5f8153411a23"
+  },
+  {
+    "path": "src\\scene\\viewer.js",
+    "sha256": "60f7181a68ba1baf58c07acab5805e32ddb41ffba613dad59473615b9e067c92"
+  },
+  {
+    "path": "src\\scene\\technicalView.js",
+    "sha256": "1218489ee44da867784cb7b503e1094248197855be0d833cef67305642fd7a4c"
+  },
+  {
+    "path": "src\\scene\\loadHead.js",
+    "sha256": "bead6f3fc1f0b05b8edf09c64d574906d7f7a31ebfc390fcf14a596a818d58ce"
+  },
+  {
+    "path": "src\\scene\\facetWireframe.js",
+    "sha256": "bc359d847f45655e61ea31668d97fde3773faeb3e5d0c6afc181964e0186a25c"
+  },
+  {
+    "path": "src\\rendering\\strandSampler.js",
+    "sha256": "29e0f9368c8107a2470af1678a4d4802c389733f717d9d5adae1d15034f315b8"
+  },
+  {
+    "path": "src\\rendering\\renderer.js",
+    "sha256": "892399e5287e0205ee28670b3d451316eb6059e512cb0880687ad57e32d29902"
+  },
+  {
+    "path": "src\\rendering\\legacy\\strands.js",
+    "sha256": "af614e6ce9aa0f7ab76a621d0f748294fb580dc42b79b0a8d7a3b7f40c81c2ba"
+  },
+  {
+    "path": "src\\rendering\\legacy\\README.md",
+    "sha256": "3f1e858ac2e901e63a15dfbb3b19a078f77a7da60c58cee063384e9729cebb5f"
+  },
+  {
+    "path": "src\\rendering\\legacy\\hairShader.js",
+    "sha256": "bb51f21d239ce87bcfeaa6087666788e159094b72da5180e1540831c1278ea16"
+  },
+  {
+    "path": "src\\rendering\\legacy\\gpuHair.js",
+    "sha256": "f19f4be0cdcfc769a66b8cfdaac9160819a530afa624d7403f92ddda148a2069"
+  },
+  {
+    "path": "src\\rendering\\gpu\\seamField.js",
+    "sha256": "20fd49117191f006790a2e7d7da5921f893c90a0fae900ebc475885b09c585a0"
+  },
+  {
+    "path": "src\\rendering\\gpu\\hairShaderGuides.js",
+    "sha256": "04fc14cc43b813e8345a5787e2afe85476241a300224df2d5ca6f66383d3a0ad"
+  },
+  {
+    "path": "src\\rendering\\gpu\\guideBinding.js",
+    "sha256": "d495798973437aea39b52eb8fc0d12a1b62c3b1548dec7d37dd6e6df62c1fbe1"
+  },
+  {
+    "path": "src\\rendering\\gpu\\gpuHairR3.js",
+    "sha256": "d86f65c4bc8e1dd2c95c9e9ece4e8870129b6a2ccfb5da6cfa15f873a6634352"
+  },
+  {
+    "path": "src\\hair\\strandShape.js",
+    "sha256": "4ca536b1cc9475746311a34867072f69cafdbe0c4c63ea0842e92d89bc544abc"
+  },
+  {
+    "path": "src\\hair\\strandResample.js",
+    "sha256": "782e91c980cf70b1a629cb1d6d035739037895ffbefda61103fd8261b6468c3c"
+  },
+  {
+    "path": "src\\hair\\strandCut.js",
+    "sha256": "2782f01476cbfbd6a49b236e858288404b4d859f015e1aa3895b7785877cd280"
+  },
+  {
+    "path": "src\\hair\\strandConstraints.js",
+    "sha256": "ced881e098d7af17974c0dbd244bea830725e61a90113ff7356c993520f997e8"
+  },
+  {
+    "path": "src\\hair\\guideLengthAudit.js",
+    "sha256": "bb76f40a83c860305cacd3d9f51ad6e2106aa31f821806be07985e333b160608"
+  },
+  {
+    "path": "src\\hair\\growthPreview.js",
+    "sha256": "4b30031f74f4ab860c5b78e903e06c6a236d0de4fcd9e9b7d8c2b48b5c2b4f75"
+  },
+  {
+    "path": "src\\hair\\growthModel.js",
+    "sha256": "3cafc563042582339ce42279bfb61236d6c9d809f02c2e85e314493efb56b4a9"
+  },
+  {
+    "path": "src\\hair\\cutSession.js",
+    "sha256": "35a4e8a61432cf14ad28a081d125572eb3a1a9bc295a72c211f299cf443e247e"
+  },
+  {
+    "path": "src\\groom\\seams.js",
+    "sha256": "97e37ad8420dafb24b06f84af97bff09be0c218173f8ee0e6af1824bd17ed8c1"
+  },
+  {
+    "path": "src\\groom\\schemaGuards.js",
+    "sha256": "d2f8e6820cfaf3c8a1a5a5d04e3a007f2061cd7d097b54edaa96cb6cff4ca546"
+  },
+  {
+    "path": "src\\groom\\guides.js",
+    "sha256": "11a2364a95f36acf2209a215950d19d25ce7218ef492719fcd27d18515895025"
+  },
+  {
+    "path": "src\\groom\\groom.js",
+    "sha256": "63221bcf27d3909b0d2f987615239260c3e5a22b104545c40a2349cebefc809c"
+  },
+  {
+    "path": "src\\debug\\seamOverlay.js",
+    "sha256": "3fd8fe16994f2efebe9ab48d8fd402bfe8d1d33f21203079a305a090edf0950f"
+  },
+  {
+    "path": "src\\debug\\GuideDebugView.js",
+    "sha256": "93dc20096e6e12cf83dd4e10c3cf628f335762a070cf2dd6dc2c706dbfb89d3e"
+  },
+  {
+    "path": "src\\debug\\growthCapture.js",
+    "sha256": "6d079f069ed116cc609e91df48b985228c1b0682cc4b882cfd746369a16b3de4"
+  },
+  {
+    "path": "src\\app\\ui.js",
+    "sha256": "b1123311bc8c0fd82bcddfa60aa7c3adc740b5c2f15bbe2af4f9af46f8c102a2"
+  },
+  {
+    "path": "src\\app\\technicalViewUI.js",
+    "sha256": "67ceaecfffe2da403c4c09f56b868d1662f8e8f15edd68aa076dba41fbe119db"
+  },
+  {
+    "path": "src\\app\\technicalView.css",
+    "sha256": "d60b0d4d97fb60193c9a013f10c7a599239b1a2a1011cf1b0f364a03eda6a49c"
+  },
+  {
+    "path": "src\\app\\main.js",
+    "sha256": "eab9db6e87dfe64ed4fec369ca79e16454ed4995386adf6098ae6a029e0383ce"
+  },
+  {
+    "path": "src\\app\\history.js",
+    "sha256": "360b118feb3ba20b257c929c0cb17a6c87915b3c4c4b6d12d9af959fc7dcf437"
+  },
+  {
+    "path": "src\\app\\growthPreview.js",
+    "sha256": "53688db684306bc7a1dde58fe35a286a34284c2ef187ad3b74886cee215df4d4"
+  },
+  {
+    "path": "src\\app\\defaultGroom.js",
+    "sha256": "be348ac94f378a8d4c534fbf2531674ae6df03f2d17fa2e4d5f0c4c728ac69d3"
+  }
+]

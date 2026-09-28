@@ -12,11 +12,13 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildFacetWireframe } from './facetWireframe.js';
+import { resizeCamera, assignViewerCamera } from './groomingCamera.js';
 
 export class Viewer {
   constructor(container) {
     this.container = container;
     this._updaters = new Set();
+    this._cameraListeners = new Set();
     this._clock    = new THREE.Clock();
 
     // --- renderer ---
@@ -132,6 +134,16 @@ export class Viewer {
     return () => this._updaters.delete(fn);
   }
 
+  /** Assign every active-camera consumer through one notification path. */
+  setCamera(camera, { target = this.controls.target } = {}) {
+    assignViewerCamera(this, camera, { target });
+  }
+
+  onCameraChange(fn) {
+    this._cameraListeners.add(fn);
+    return () => this._cameraListeners.delete(fn);
+  }
+
   _tick = () => {
     const dt = this._clock.getDelta();
     const t  = this._clock.elapsedTime;
@@ -144,14 +156,7 @@ export class Viewer {
     const w = this.container.clientWidth  || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
-    if (this.camera.isOrthographicCamera) {
-      const halfHeight = this.camera.userData.technicalHalfHeight ?? (this.camera.top - this.camera.bottom) / 2;
-      this.camera.left = -halfHeight * w / h;
-      this.camera.right = halfHeight * w / h;
-      this.camera.top = halfHeight;
-      this.camera.bottom = -halfHeight;
-    } else this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    resizeCamera(this.camera, w / h);
   };
 
   /**
@@ -170,6 +175,7 @@ export class Viewer {
     window.removeEventListener('resize', this._onResize);
     this.renderer.domElement.removeEventListener('pointerdown', this._onNavPointerDown, { capture: true });
     this.controls.dispose();
+    this._cameraListeners.clear();
     this.renderer.dispose();
   }
 }

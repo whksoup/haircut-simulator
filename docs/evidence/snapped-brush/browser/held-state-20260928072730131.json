@@ -1,0 +1,189 @@
+{
+  "date": "2026-09-28T07:27:30.131Z",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+  "viewport": [
+    1280,
+    640
+  ],
+  "camera": {
+    "metadata": {
+      "version": 4.6,
+      "type": "Object",
+      "generator": "Object3D.toJSON"
+    },
+    "object": {
+      "uuid": "2d52e45c-3ab3-4911-bd86-86df4a9f7f7b",
+      "type": "PerspectiveCamera",
+      "layers": 1,
+      "matrix": [
+        0.848048096156426,
+        -2.7755575615628914e-17,
+        -0.5299192642332049,
+        0,
+        -0.34062553718331134,
+        0.7660444431189781,
+        -0.5451148086276094,
+        0,
+        0.4059417076675441,
+        0.6427876096865393,
+        0.6496425315582589,
+        0,
+        1.8267376845039482,
+        2.892544243589427,
+        2.923391392012165,
+        1
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "fov": 45,
+      "zoom": 1,
+      "near": 0.07892413608144257,
+      "far": 789.2413608144257,
+      "focus": 10,
+      "aspect": 2,
+      "filmGauge": 35,
+      "filmOffset": 0
+    }
+  },
+  "counts": {
+    "strands": 1671,
+    "facets": 3,
+    "guides": 3,
+    "rows": 256,
+    "perStrandGuides": 3,
+    "growthFraction": 1,
+    "seams": {
+      "cached": 0,
+      "scale": 3,
+      "radius": null,
+      "truncated": false,
+      "active": false
+    }
+  },
+  "active": true,
+  "cylinderVisible": true,
+  "strokeFrame": {
+    "axis": {
+      "x": -0.541675220419702,
+      "y": -0.6427876096865393,
+      "z": -0.5416752204197018
+    },
+    "localAxis": {
+      "x": -0.541675220419702,
+      "y": -0.6427876096865393,
+      "z": -0.5416752204197018
+    },
+    "center": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "heading": -2.356194490192345,
+    "originalHeading": -2.5830872929516078,
+    "elevation": -0.6981317007977317,
+    "scale": 1,
+    "matrix": {
+      "elements": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "plane": {
+      "isPlane": true,
+      "normal": {
+        "x": -0.541675220419702,
+        "y": -0.6427876096865393,
+        "z": -0.5416752204197018
+      },
+      "constant": 0
+    }
+  },
+  "input": "synthetic held visualization",
+  "hashes": {
+    "index.html": "84d3d35c48888cf18d8e6ed9e84b9a763b7e6d3303007dd2c88fa33b19544167",
+    "public/models/head.glb": "0e510e2d4174bece7b0af35257a4624c1b206d18af902591a6d29803146363c0",
+    "src/app/defaultGroom.js": "be348ac94f378a8d4c534fbf2531674ae6df03f2d17fa2e4d5f0c4c728ac69d3",
+    "src/app/growthPreview.js": "0e8e2aa2a718342d9592ed90fc4e95387d8e717f03fe8b779f4a9db9865ce364",
+    "src/app/history.js": "4ae6891dd118a4170f65f3d07db46f4955cba98be0dda360fdff4e85330f189b",
+    "src/app/main.js": "c4e29cf7f12839cca3d3dae9caaab57e11e1af81d60ecedb9f99a5000168b0bf",
+    "src/app/technicalView.css": "d60b0d4d97fb60193c9a013f10c7a599239b1a2a1011cf1b0f364a03eda6a49c",
+    "src/app/technicalViewUI.js": "67ceaecfffe2da403c4c09f56b868d1662f8e8f15edd68aa076dba41fbe119db",
+    "src/app/ui.js": "6a4cc9738dea552eef25ac4f23bb8b35538abeb065d364c313fbc44997551034",
+    "src/debug/GuideDebugView.js": "93dc20096e6e12cf83dd4e10c3cf628f335762a070cf2dd6dc2c706dbfb89d3e",
+    "src/debug/brushMaskOverlay.js": "ccddc411ebf7988b3891d0ed9d51d82fa6cb6d20ba27fd17f4219227abac5ca7",
+    "src/debug/growthCapture.js": "aa0e4805b8008f84c82a8fa24d552bbb8559436c28fbca27924005d5dd60a472",
+    "src/debug/seamOverlay.js": "3fd8fe16994f2efebe9ab48d8fd402bfe8d1d33f21203079a305a090edf0950f",
+    "src/debug/snappedBrushCylinder.js": "00808b605512dd9b755e7171bc7e851d7c9ecf6a3530714fdd966fdb8f0edc41",
+    "src/groom/groom.js": "45925f38c6d45af5d2dc4443114a2c731f45dde2ae35ea4347a5612c485bafb0",
+    "src/groom/guides.js": "65fba3e4800a3c2d1bac77da1a1fe4c708ad77904c7b98ae6dae0df6fbc13890",
+    "src/groom/schemaGuards.js": "d2f8e6820cfaf3c8a1a5a5d04e3a007f2061cd7d097b54edaa96cb6cff4ca546",
+    "src/groom/seams.js": "97e37ad8420dafb24b06f84af97bff09be0c218173f8ee0e6af1824bd17ed8c1",
+    "src/hair/cutSession.js": "35a4e8a61432cf14ad28a081d125572eb3a1a9bc295a72c211f299cf443e247e",
+    "src/hair/growthModel.js": "b6e042530952a20487a0195d95863bf1540ba80da488e8b3f6fb3b89dc90adc8",
+    "src/hair/growthPreview.js": "1e3a101ad4dd5078d30ea56d86f4cf36705b9676dc2d96c41ba95dd41e18fcbe",
+    "src/hair/guideFrame.js": "36db2450a48a5ab5f1702e05782174e20315425eaded7aec2e9ec672e3ec1761",
+    "src/hair/guideLengthAudit.js": "bb76f40a83c860305cacd3d9f51ad6e2106aa31f821806be07985e333b160608",
+    "src/hair/rayBrushStroke.js": "2372967f25428662a0bdbe8a975e16627ab8b5ec732366caf84c63d6a3803e7c",
+    "src/hair/strandConstraints.js": "ced881e098d7af17974c0dbd244bea830725e61a90113ff7356c993520f997e8",
+    "src/hair/strandCut.js": "2782f01476cbfbd6a49b236e858288404b4d859f015e1aa3895b7785877cd280",
+    "src/hair/strandResample.js": "782e91c980cf70b1a629cb1d6d035739037895ffbefda61103fd8261b6468c3c",
+    "src/hair/strandShape.js": "4ca536b1cc9475746311a34867072f69cafdbe0c4c63ea0842e92d89bc544abc",
+    "src/rendering/gpu/gpuHairR3.js": "ca00857960fbbba9869ecfe245ae02ae67516ec54d8ec429da868614010a54a2",
+    "src/rendering/gpu/guideBinding.js": "d495798973437aea39b52eb8fc0d12a1b62c3b1548dec7d37dd6e6df62c1fbe1",
+    "src/rendering/gpu/hairShaderGuides.js": "04fc14cc43b813e8345a5787e2afe85476241a300224df2d5ca6f66383d3a0ad",
+    "src/rendering/gpu/seamField.js": "20fd49117191f006790a2e7d7da5921f893c90a0fae900ebc475885b09c585a0",
+    "src/rendering/legacy/gpuHair.js": "f19f4be0cdcfc769a66b8cfdaac9160819a530afa624d7403f92ddda148a2069",
+    "src/rendering/legacy/hairShader.js": "bb51f21d239ce87bcfeaa6087666788e159094b72da5180e1540831c1278ea16",
+    "src/rendering/legacy/strands.js": "af614e6ce9aa0f7ab76a621d0f748294fb580dc42b79b0a8d7a3b7f40c81c2ba",
+    "src/rendering/renderer.js": "7e31e15d54ae374daa972edde1e9211ca16dda11e591817c087d0dd1411c6bdf",
+    "src/rendering/strandSampler.js": "29e0f9368c8107a2470af1678a4d4802c389733f717d9d5adae1d15034f315b8",
+    "src/scene/facetWireframe.js": "bc359d847f45655e61ea31668d97fde3773faeb3e5d0c6afc181964e0186a25c",
+    "src/scene/groomingCamera.js": "0fc95a457f9292bb08fb93b05cb4396e1f917d8c9a6c269e5e48a704188554c3",
+    "src/scene/headVisibility.js": "eb489e0f58a6079442a6b841da2db85a743e518304d47a6aa9d546f27a75fd63",
+    "src/scene/loadHead.js": "bead6f3fc1f0b05b8edf09c64d574906d7f7a31ebfc390fcf14a596a818d58ce",
+    "src/scene/snappedBrushFrame.js": "6d80f9850b2357fd2b77bad11fada2dde0d395b432ca9cbfd0e158e86f833b58",
+    "src/scene/technicalView.js": "dd711f15a7656dae39baf196b12105a9a21c17d60757b0176ffb0eba99024ac3",
+    "src/scene/viewer.js": "f3d06ebef3fb761ec4fc857bfe193222ce26a899f6ab6a53cc45d14107c661df",
+    "src/tools/combTool.js": "117b07dc7be4f53ca0d4115d4d77d8170fba32745c7475d18af102bc5f145a1e",
+    "src/tools/rayBrushTool.js": "94da7e8377b056505133f2f881329f8d014eddad151df922916a831afdb454c9",
+    "src/tools/raycast.js": "e393589c41ea2f33bf431c6c37f4055f46c44f190e851fde83e9f0a5c7cb8fad",
+    "src/tools/scissorsTool.js": "6894fb9838f0d9b3b930ad39e6395e2ecf5769c9dd055e694c5881eb87329a98",
+    "src/tools/seamTool.js": "3d19d3385e59f842c919fbc06e151963c4b42dcbff2709639b9669b03b584715",
+    "src/tools/snappedBrushTool.js": "7a026622b861b3020002006f07096948b1f2c3233747f79147f202fe621bd068",
+    "tests/browser/growth-evaluation.js": "fbec36552c8d65d108cf291ee8b288a45f64562fdcb5e30673ecdee823063021",
+    "tests/browser/growth-review.html": "f6240cb779f590b8ea55bb7f91acca290c4a2d0e89d13c8945e5877fbe3d1ccc",
+    "tests/browser/growth-run.js": "1e4e9543e738f620c4d9d616eb40f4ff1792ba0d996f06e8e43bf340d863839f",
+    "tests/browser/growth.html": "517aebd69392184e1564ee56378c632e8f4938e6e10758bb5326edf224bb033f",
+    "tests/browser/orb-integration.html": "22d9b68b7fd3a22b336bdfca6f987d33f09ddd43185da5d5a02d428ac20686fc",
+    "tests/browser/orb-integration.js": "e15bf118b5e93c7bc6145f8257cc6252c44faa91d64a5e96dad3ae37100c1751",
+    "tests/browser/orb-run.js": "2fa443d8da1c8e2f9ab4242aa2abd02eeedae603c9ed56d083477b0c93d2e177",
+    "tests/browser/orb-smoke.html": "12d40f0178abe352979da9411dcc46c13e5a48db3cab74ecf1ecd868d93d2744",
+    "tests/browser/orb-smoke.js": "b3cc8f1f8ff26cb54dc9afcb40bdb4bcf744e367db7ffa977f831c085abe4951",
+    "tests/browser/orb.html": "0c9591fc3bffbcb83df5856224f0a74d216ab16f156042e1d18ed227ddf24e87",
+    "tests/browser/snap-run.js": "58555ff9b7b3c5c5db5f043f452c8e6333b37d67446b9d2db7da8b12471e4cf6",
+    "tests/browser/snap.html": "69e272f4533fe34ee06049d084988ede9681625afbeba0bf6bf9bd4339a0bd75",
+    "tests/browser/technical-run.js": "0b01d325b5b8fc8debf034831c89ef46bc866ceb5d923165f680f7d0bcbb55fd",
+    "tests/browser/technical.html": "d8a5c529bf2cbdf25159104d94b6c78b55470128855ab3ec2efa41cbec908d0e",
+    "tests/browser/vite-evidence.config.mjs": "63a23806d198657f672fea67b4e7bf6e5303b790707362c6915142d0e1d1415a",
+    "tests/browser/vite-orb.config.mjs": "e00b34477900e29cde63d9eba862f590a6f8060c659c2b44c8a6ccceaeb71a7d",
+    "tests/browser/vite-snap.config.mjs": "ca5c1f53329b2043feed1e85ace02006d0b04b6930dff51ff5311e69f78e840a",
+    "tests/browser/vite-technical.config.mjs": "bac99be733f42d71251af85ba9cb16a84e788d16d9e68a1621504bbfdad7adea"
+  }
+}

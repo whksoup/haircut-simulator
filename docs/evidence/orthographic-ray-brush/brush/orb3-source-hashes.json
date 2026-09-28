@@ -1,0 +1,38 @@
+[
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\src\\tools\\rayBrushTool.js",
+    "Hash": "F60EA5CBBC7ADCB4CC482698365F3897FD00DE49DBE0CCDCF653D616BC142257"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\src\\scene\\headVisibility.js",
+    "Hash": "EB489E0F58A6079442A6B841DA2DB85A743E518304D47A6AA9D546F27A75FD63"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\src\\hair\\rayBrushStroke.js",
+    "Hash": "2372967F25428662A0BDBE8A975E16627AB8B5EC732366CAF84C63D6A3803E7C"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\src\\hair\\guideFrame.js",
+    "Hash": "36DB2450A48A5AB5F1702E05782174E20315425EADED7AEC2E9EC672E3EC1761"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\src\\tools\\combTool.js",
+    "Hash": "117B07DC7BE4F53CA0D4115D4D77D8170FBA32745C7475D18AF102BC5F145A1E"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\tests\\ray-brush-default.test.mjs",
+    "Hash": "41A522AB009053B9FB7B1D9C8F289A1AE4C0B567EB41BBB5E491C7705A219C96"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\tests\\ray-brush-domain.test.mjs",
+    "Hash": "A92F2ABAE8836B184363535F0E6E212F878BF9C1E34E0B114DC1AEED080297A4"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\tests\\ray-brush-tool.test.mjs",
+    "Hash": "07954495CFDD29C491F18A7289D80B6792A486048AD73EB16167575A4001D518"
+  },
+  {
+    "Path": "C:\\Users\\He Kai\\haircut-simulator\\tests\\ray-brush-frame.test.mjs",
+    "Hash": "55023908084DBA77C420F1A0445E9974FA85AA634C03114935D6A7A4BC11E24F"
+  }
+]

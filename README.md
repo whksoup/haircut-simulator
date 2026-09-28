@@ -2,21 +2,13 @@
 
 Interactive Three.js hair grooming with GPU-instanced strands blended from authored guides. Supports facet selection, combing, scissors, seam authoring, undo/redo, and JSON save/load. The active renderer is `GpuHairR3` (`kind: 'guides'`).
 
-## Frozen handover — 2026-09-27
+## Working baseline — 2026-09-28
 
-Work is frozen for transfer to another agent. Do not start another implementation iteration until asked. The checkpoint automation `technical-view-checkpoint-watch` is PAUSED. No application behavior was changed during this freeze.
-
-### Choose the correct snapshot
+The current Technical view implementation is folded into `AgentRefactor`, the working branch for further development at `C:/Users/He Kai/haircut-simulator`. This supersedes the September 27 instruction to keep the baseline and candidate separate. The checkpoint automation remains paused.
 
 Remote: [whksoup/haircut-simulator](https://github.com/whksoup/haircut-simulator).
 
-| Branch | Contents | Use |
-| --- | --- | --- |
-| `AgentRefactor` | Existing grooming/growth implementation, UI brief, evaluation requirements, visual references and handover | Baseline and planning record |
-| `codex/haircut-technical-view` | Recovered Technical view implementation, tests, harness, screenshots and handover | Continue UI review here |
-
-Both branches start from `effc25c` before their freeze commits. These are separate snapshots, not a merged release. `main` is unchanged. In a fresh clone, run `git fetch origin` and `git switch --track origin/codex/haircut-technical-view` (or switch to the existing local branch). Locally the candidate is already checked out at `C:/Users/He Kai/.codex/worktrees/ddf1/haircut-simulator`; use that worktree rather than checking the branch out twice.
-
+The integration combines the baseline freeze `d6f8407` and Technical view snapshot `e4333dc`, including its source, tests, harness and saved evidence. The `codex/haircut-technical-view` branch and its existing worktree remain preserved as the original snapshot. `main` is unchanged. Continue in this checkout on `AgentRefactor`; see the [integration session](docs/sessions/2026-09-28-technical-view-integration.md) for fresh verification.
 **Correction to earlier status:** the app task list never exposed the new implementation task, so this conversation incorrectly inferred implementation had not run. A September 27 Git worktree audit recovered uncommitted implementation and evidence. Its real task ID remains unknown; the queued client ID is not a task ID. Files and evidence provide the handoff independently. Older source-checkout notes claiming implementation is pending reflect incomplete observation.
 
 ### Accepted experience
@@ -33,7 +25,7 @@ Read the [design brief](.design/haircut-technical-view/DESIGN_BRIEF.md), [evalua
 
 ### Implementation and evidence map
 
-On the candidate branch: `src/scene/technicalView.js` owns presentation/camera/cutaway; `src/app/technicalViewUI.js` and `technicalView.css` own the panel; `src/app/main.js` owns mode/tool integration; `src/scene/viewer.js` supplies viewer integration; `src/rendering/gpu/hairShaderGuides.js` contains hair presentation/clipping changes. `tests/technical-view.test.mjs` covers five deterministic contracts. No solver or persistent schema changes are claimed by its handoff.
+In this branch: `src/scene/technicalView.js` owns presentation/camera/cutaway; `src/app/technicalViewUI.js` and `technicalView.css` own the panel; `src/app/main.js` owns mode/tool integration; `src/scene/viewer.js` supplies viewer integration; `src/rendering/gpu/hairShaderGuides.js` contains hair presentation/clipping changes. `tests/technical-view.test.mjs` covers five deterministic contracts. No solver or persistent schema changes are claimed by its handoff.
 
 Candidate evidence is in `docs/evidence/technical-view/README.md`, PNG/JSON captures, `browser-checks.json` and the September 18 implementation session. That report records 101 browser assertions and an independent core critic pass. These are historical artifacts/reports, not a fresh September 27 browser run. The evidence README distinguishes final source-hashed captures from earlier UI screenshots. The later full TV-1 rubric was absent from the recovered worktree: its complete acceptance must be reviewed, not inferred from the earlier critic report.
 
@@ -54,10 +46,10 @@ Still unverified: native Save download delivery, native file picker, successful 
 
 ### Resume procedure
 
-1. Inspect branch/status, this README, `AGENTS.md`, architecture and the [freeze session](docs/sessions/2026-09-27-freeze-handover.md). Choose the candidate branch for UI review.
+1. Inspect branch/status, this README, `AGENTS.md`, architecture and the [freeze session](docs/sessions/2026-09-27-freeze-handover.md). Continue on `AgentRefactor` in this checkout; read the September 28 integration session.
 2. Run `npm ci` if dependencies are missing, tests/build, then `npm run dev`. Keep the four known failures visible.
 3. Candidate harness: `npm run dev -- --config tests/browser/vite-technical.config.mjs`, then `http://127.0.0.1:5175/tests/browser/technical.html?autorun`. It writes evidence; preserve old captures before running a new cycle.
-4. After authorized resumption, assign bounded builders and separate capture/critic agents. Keep app integration and shared docs under single owners. Follow TV-1 and retain source, fixture, camera and viewport metadata.
+4. For future implementation and visual review, assign bounded builders and separate capture/critic agents as needed. Keep app integration and shared docs under single owners. Follow TV-1 and retain source, fixture, camera and viewport metadata.
 5. Complete remaining verification, grade screenshots and interaction/state evidence, fix actionable defects and recapture. Record checkpoints and leave agents idle when shutdown is requested. Do not restart the monitor automatically or infer correctness from screenshots alone.
 
 ## Run
@@ -103,6 +95,10 @@ public/models/       production head asset
 `Groom` owns authored faces, guides, seams, globals, and seeds. Guides hold normalized control points plus length, tangent, and growth rate. The GPU reconstructs dense strands by blending three guides; comb edits update guide texture rows. Mesh topology and GPU buffers are derived state.
 
 The Growth slider previews each strand's root-side arc-length fraction, from 1 (the full authored hairstyle) to 0 (no visible hair). It preserves surviving bends rather than scaling the shape. Styling is available at 1; camera movement, inspection, and saving remain available during preview. Saves contain the full authored groom, and loading resets the slider to 1. Historical rate-based rewind helpers remain separate from this visualizer.
+
+**Technical view** opens the current haircut as a white technical illustration, with toon shading, outlines and optional plane edges. Drag to orbit or choose one of six orthographic views. Enable Cutaway to hide one side of an X/Y/Z plane through both head and hair; adjust its relative position or Flip side. Cutaway starts off on entry. Return to grooming (or Escape) restores the ordinary camera, presentation and previous tool; inspection preserves authored data, undo history and growth fraction. Controls support keyboard focus and slider arrows. Cut surfaces are not capped.
+
+The opt-in browser verification harness runs with `npm run dev -- --config tests/browser/vite-technical.config.mjs`; open `http://127.0.0.1:5175/tests/browser/technical.html?autorun`. It uses a separate test iframe and restores its startup groom. See [Technical view evidence](docs/evidence/technical-view/README.md) for results and verification limits.
 
 ## Head assets
 

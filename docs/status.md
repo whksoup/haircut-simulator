@@ -1,24 +1,23 @@
 # Project status
 
-Updated: 2026-09-27 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
+Updated: 2026-09-28 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
 
-## Frozen handover
+## Technical view integration
 
-User requested freeze and publication. See [README](../README.md) and [freeze session](sessions/2026-09-27-freeze-handover.md). Technical view implementation was recovered in a separate worktree on `codex/haircut-technical-view`, superseding earlier assumptions that task-list absence meant no implementation. Both branches are preserved separately; this baseline remains behaviorally unchanged. Checkpoint monitor paused; do not resume automatically.
+At the user's request, the current Technical view snapshot `e4333dc` is merged into `AgentRefactor` at `C:/Users/He Kai/haircut-simulator`. This is the working branch for subsequent tasks. The September 27 separate-snapshot freeze is superseded by this integration; the checkpoint monitor remains paused. See the [integration session](sessions/2026-09-28-technical-view-integration.md).
 
-Fresh baseline: 12 pass / 4 known failures; candidate: 17 pass / same 4 failures. Both builds pass with existing size warning. Historical browser evidence exists on the candidate; full TV-1 acceptance needs review. Sections below retain historical track context, not current dirty-state claims.
-
+Application source and tests are taken unchanged from the Technical view snapshot. Merge conflicts affect documentation only; both planning and recovered implementation history are retained. Fresh combined verification: 17 tests pass and the same four known failures remain; all five Technical view tests pass. Production build passes with the existing size warning and the same candidate JavaScript asset hash. No fresh browser run was performed for this source-identical integration. Historical browser evidence does not establish full TV-1 acceptance.
 ## Existing system and baseline
 
 Guide-based R3 GPU grooming supports selection, combing, cutting, seams, history, and JSON persistence. See [README](../README.md) and [architecture](architecture.md) for behavior and ownership.
 
-Verified 2026-09-16 on the local dirty checkout after growth implementation: production build passes (`index-B1O7fh3n.js`, existing >500 kB warning); full suite has twelve passes and the same four [documented failures](architecture.md#verification). Growth preview is connected and GPU/browser evidence is recorded in the [growth session](sessions/2026-09-16-growth-preview.md) and [workstream](workstreams/growth-preview.md). Human visual acceptance and browser Save download delivery remain unconfirmed. The working tree contains pre-existing uncommitted relocation and application changes; HEAD alone does not represent it.
+Verified 2026-09-16 on the local dirty checkout after growth implementation: production build passes (`index-B1O7fh3n.js`, existing >500 kB warning); full suite has twelve passes and the same four [documented failures](architecture.md#verification). Growth preview is connected and GPU/browser evidence is recorded in the [growth session](sessions/2026-09-16-growth-preview.md) and [workstream](workstreams/growth-preview.md). Human visual acceptance and browser Save download delivery remain unconfirmed. That historical dirty state was committed during the September 27 freeze.
 
 ## Current and recent tracks
 
 | Track | Scope | Stage / owner | Next action / evidence |
 | --- | --- | --- | --- |
-| Haircut instruction UI | v1: stylist construction study of a finished haircut; UX slice over existing engineering | Planned / coordinator with design brief agent | [Brief complete](../.design/haircut-technical-view/DESIGN_BRIEF.md): dedicated desktop Technical view, illustrated rendering, one viewport with camera presets, cutaway clipping head/hair. Implementation pending. [Session](sessions/2026-09-18-haircut-instruction-ui.md) |
+| Haircut Technical view | v1: illustrated finished-cut inspection, camera presets and head/hair cutaway | Integrated; core rubric passes / coordinator with parallel builders and independent review | [Evidence](evidence/technical-view/README.md), [session](sessions/2026-09-18-haircut-instruction-ui.md). 101 browser assertions pass; 5 targeted tests pass; full suite 17 pass / same 4 known failures; build passes. Native download delivery/picker and successful shortening cut remain verification limits. Snapshot `e4333dc` folded into `AgentRefactor`; fresh integration checks are recorded in the September 28 session. Browser results above are historical. |
 | Growth preview | v1: global retained arc fraction, styling lock, immutable full-state save | Integrated; human evaluation pending / primary agent | Final GPU run passes45 scenarios/1671 strands; real tool/controls smoke and full checks recorded. Critic passes G1–G4/G6–G7; G5 download delivery and G8 human acceptance remain insufficient evidence. [Plan, rubric and remaining acceptance](workstreams/growth-preview.md), [session](sessions/2026-09-16-growth-preview.md). Next: human visual review and Save download delivery check |
 | Agent/documentation workflow | v1: three roles and three documentation layers | Closed (files/configuration validated) / primary agent | Use on the next substantive task; runtime role discovery not exercised in this session; [handoff](sessions/2026-09-15-agent-workflow.md) |
 | Critic and test-first extension | v2: critic role and builder procedure | Closed (files/configuration validated) / primary agent | Ready for a later implementation trial with a supplied rubric; runtime role behavior untested; [validation](sessions/2026-09-16-critic-test-first.md) |

@@ -37,6 +37,8 @@ Current groom schema: 6. Guide schema: 5. Growth rates remain serialized per gui
 
 Growth verification uses an opt-in local browser harness in `tests/browser/` and GPU readback in `debug/growthCapture.js`, neither imported by the application. The diagnostic uses the same reconstruction GLSL with a float position target, paired with an independent segment-prefix oracle and fixed-camera screenshots. See the [growth workstream](workstreams/growth-preview.md) for evidence and remaining human acceptance/download-delivery checks.
 
+Technical inspection is transient presentation state. `app/main.js` finishes active gestures, suspends editing through the shared `canStyle`/tool arbitration path, hides diagnostic/tool overlays, and restores the prior tool on return. `app/technicalViewUI.js` owns native boxed controls and focus. `scene/technicalView.js` temporarily swaps head materials, lighting and the camera, supplies six orthographic presets and one world-space clipping plane, then restores original references. The active GPU shader receives presentation-only uniforms for illustrated color and matching clipping after strand reconstruction; no groom rebuild or authored data conversion occurs. `viewer.js` resizes either camera projection. OrbitControls r169 caches its up basis, so the controller synchronizes those cached fields when changing pole views; the real-controls regression test covers this version-specific adapter. Optional surface edges and outline resources are disposed on return. Cutaway surfaces have no generated caps. [Verification evidence](evidence/technical-view/README.md).
+
 ## Files outside the main GPU implementation
 
 | Files / dependency | Evidence | Decision |

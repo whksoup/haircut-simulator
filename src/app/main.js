@@ -42,6 +42,8 @@ import { seedSeamsFromCreases } from '../groom/seams.js';
 import { createStrandRenderer } from '../rendering/renderer.js';
 import { createGrowthPreview } from './growthPreview.js';
 import { applyDefaultGroom }    from './defaultGroom.js';
+import { createTechnicalView } from '../scene/technicalView.js';
+import { createTechnicalViewUI } from './technicalViewUI.js';
 
 async function main() {
   const container = document.getElementById('app');
@@ -152,7 +154,8 @@ async function main() {
     isBusy: () => history.busy,
     sync: () => syncGrowthPreview(),
   });
-  const canStyle = growthPreview.canStyle;
+  let technicalActive = false;
+  const canStyle = () => !technicalActive && growthPreview.canStyle();
   renderer.canStyle = canStyle;
   const setGrowthFraction = (value) => growthPreview.set(value);
   Object.defineProperty(runtime, 'growthFraction', { enumerable: true, get: () => growthPreview.fraction });
@@ -558,6 +561,7 @@ async function main() {
   let activeTool = 'none';
   let log = () => {};   // replaced with the debug console once the UI exists
   function setActiveTool(next) {
+    if (technicalActive && next !== 'none') return false;
     if (!canStyle() && !['none', 'pick'].includes(next)) { syncGrowthPreview(); return false; }
     if (next === activeTool) return;
     if (activeTool === 'pick')     raycast.disable();
@@ -693,6 +697,50 @@ async function main() {
 
   log = (msg) => dbg.log(msg);
 
+  // Inspection borrows presentation only; authored stores and history stay put.
+  dbg.element.dataset.groomingChrome = '';
+  let technicalUI;
+  const technicalView = createTechnicalView({
+    viewer, head: root, hair: renderer.object,
+    onChange: (state) => technicalUI?.update(state),
+  });
+  let inspectionRestore = null;
+  function enterTechnicalView() {
+    if (technicalActive) return true;
+    comb.finishEditing(); scissors.finishEditing(); seamTool?.endEdit();
+    for (const key of ['density', 'length']) history.commitMark(`globals.${key}`, key);
+    history.commitMark('masterSeed', 'master seed');
+    if (history.busy) return false;
+    const previousTool = activeTool;
+    setActiveTool('none');
+    renderer.setComb?.(null);
+    const overlays = [guideDebug.object, seamOverlay?.object, viewer._wireframe, comb.object, scissors.object].filter(Boolean);
+    inspectionRestore = { previousTool, overlays: overlays.map(object => [object, object.visible]) };
+    for (const object of overlays) object.visible = false;
+    technicalActive = true;
+    technicalView.enter();
+    technicalUI.setActive(true);
+    syncGrowthPreview();
+    return true;
+  }
+  function exitTechnicalView() {
+    if (!technicalActive) return;
+    technicalView.exit();
+    technicalActive = false;
+    for (const [object, visible] of inspectionRestore.overlays) object.visible = visible;
+    setActiveTool(inspectionRestore.previousTool);
+    inspectionRestore = null;
+    technicalUI.setActive(false);
+    syncGrowthPreview();
+    gui.controllersRecursive().forEach(c => c.updateDisplay());
+  }
+  technicalUI = createTechnicalViewUI({
+    onEnter: enterTechnicalView, onExit: exitTechnicalView,
+    onView: view => technicalView.setView(view),
+    onCutaway: patch => technicalView.setCutaway(patch),
+    onPlaneEdges: value => technicalView.setPlaneEdges(value),
+  });
+
   // --- Escape ---------------------------------------------------------------
   // One key that backs out of whatever is currently in progress, ordered from
   // least to most destructive: leave the input field, then drop the edge
@@ -706,6 +754,7 @@ async function main() {
   // the GUI — precisely when this is needed.
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+    if (technicalActive) { e.preventDefault(); e.stopImmediatePropagation(); exitTechnicalView(); return; }
 
     // 1. Step out of the permeability field, then out of the edge selection.
     const backedOut = seamTool?.cancel?.();
@@ -745,6 +794,7 @@ async function main() {
   // must not both answer the same key — and because "P places the thing I am
   // holding" is one rule instead of two.
   window.addEventListener('keydown', (e) => {
+    if (technicalActive) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
     if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement ||
@@ -836,6 +886,7 @@ async function main() {
     viewer, groom, groomTarget, catalogue, raycast, renderer, comb, scissors,
     guideDebug, runtime, history,
     canStyle, setGrowthFraction, loadGroom,
+    technicalView, enterTechnicalView, exitTechnicalView,
     seamOverlay, seamTool, seedSeams, sealSelectionBorder, openSelectionSeams, clearAllSeams,
     topology: () => catalogue?.topology,
     addHairToSelection, removeHairFromSelection, setActiveTool,

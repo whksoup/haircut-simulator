@@ -1,6 +1,6 @@
 # Design Brief: Haircut Technical View
 
-Date: 2026-09-18. Scope v2. Interview complete; implementation pending. Evaluation loop added at the user's request; feature scope unchanged.
+Date: 2026-09-18. Scope v2. Implementation merged into AgentRefactor on 2026-09-28; historical core evidence exists, full TV-1 acceptance pending review. See README handover. Evaluation loop added at the user's request; feature scope unchanged.
 
 Implementation must follow the [visual evaluation loop](EVALUATION.md): capture screenshots after each completed build cycle and have an independent critic agent grade the evidence, then correct and recheck affected results.
 

@@ -1,6 +1,10 @@
 # Project status
 
-Updated: 2026-09-28 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
+Updated: 2026-10-03 (Asia/Singapore). Maintained using [the documentation workflow](workflow.md).
+
+## Main build integration
+
+Both the horizontal 45° brush and scalable/scrollable Groom panel are accepted into `main` in `F:/haircut-simulator`. This supersedes the isolated-experiment and AgentRefactor working-branch instructions below. The experiment banner is removed. Current integration and verification: [2026-10-03 session](sessions/2026-10-03-main-integration.md). Earlier entries retain their historical verification context.
 
 ## Technical view integration
 
@@ -15,9 +19,11 @@ Verified 2026-09-16 on the local dirty checkout after growth implementation: pro
 
 ## Isolated experiment
 
-SNAP-1 verified locally on `codex/snapped-brush` only. Camera tilt is retained; heading snaps by45° about the head-turning axis; held cylinder preview. [Session](sessions/2026-09-28-snapped-brush.md). The original checkout fingerprint is unchanged. 54 tests pass with the same four known failures; build and trusted browser strokes in both projections pass. Independent review has no remaining confirmed experiment defect. Push to origin is authorized.
+SNAP-2 implemented and verified locally in `F:/haircut-simulator`: cylinder stays parallel to scene ground; heading snaps by 45° about world Y. This supersedes SNAP-1's retained camera tilt. Ten focused tests pass; full suite has 54 passes and the same four known failures; build passes. Trusted browser strokes in both projections verify horizontal endpoints, useful edits, one history entry, exact undo/redo and length invariants. Exact pole views safely skip edits. [Current session](sessions/2026-09-29-horizontal-brush.md); [prior experiment](sessions/2026-09-28-snapped-brush.md).
 
 ## Current and recent tracks
+
+2026-09-29: shared Groom panel scaling implemented in `src/app/uiPanelScale.js` and its stylesheet, mounted from `ui.js`. Bottom-left drag handle scales text and controls, with a viewport-bounded scroll area and fixed footer. Browser verified enlargement/shrinking, wheel scrolling, keyboard/reset, Technical view hiding/restoration and unchanged groom/history. Full suite: 54 pass / same four known failures; direct Vite build passes with existing size warning. Browser validation used actual pointer input; no additional Node tests for this DOM-only change. Intended for the main build, currently uncommitted in this checkout alongside the separately scoped brush changes.
 
 | Track | Scope | Stage / owner | Next action / evidence |
 | --- | --- | --- | --- |

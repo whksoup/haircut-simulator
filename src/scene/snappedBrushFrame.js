@@ -2,7 +2,8 @@ import * as THREE from 'three';
 
 const STEP = Math.PI / 4;
 
-/** Snapshot in head-local orientation. Scaling must be rigid/uniform because
+/** Freeze a world-ground-parallel axis with heading snapped about world Y.
+ * Camera/head tilt must never tip the cylinder. Scaling must be rigid/uniform because
  * existing guide capsule solvers use one mesh-local radius. */
 export function createSnappedBrushFrame({mesh, camera}) {
   mesh.updateWorldMatrix(true, false); camera.updateWorldMatrix(true, false);
@@ -19,16 +20,16 @@ export function createSnappedBrushFrame({mesh, camera}) {
     throw new RangeError('Snapped brush requires a positive uniform head scale without shear.');
   }
   const rotation = mesh.getWorldQuaternion(new THREE.Quaternion());
-  const direction = camera.getWorldDirection(new THREE.Vector3()).applyQuaternion(rotation.clone().invert()).normalize();
+  const direction = camera.getWorldDirection(new THREE.Vector3()).normalize();
   const horizontal = Math.hypot(direction.x, direction.z);
   const originalHeading = horizontal < 1e-10 ? 0 : Math.atan2(direction.x, direction.z);
   const heading = Math.round(originalHeading / STEP) * STEP;
-  const localAxis = new THREE.Vector3(Math.sin(heading) * horizontal, direction.y, Math.cos(heading) * horizontal).normalize();
-  const axis = localAxis.clone().applyQuaternion(rotation).normalize();
+  const axis = new THREE.Vector3(Math.sin(heading), 0, Math.cos(heading));
+  const localAxis = axis.clone().applyQuaternion(rotation.clone().invert()).normalize();
   if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
   const center = mesh.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(matrix);
   return Object.freeze({axis: Object.freeze(axis), localAxis: Object.freeze(localAxis),
-    center: Object.freeze(center), heading, originalHeading, elevation: Math.asin(direction.y), scale, matrix,
+    center: Object.freeze(center), heading, originalHeading, elevation: 0, scale, matrix,
     plane: new THREE.Plane().setFromNormalAndCoplanarPoint(axis, center)});
 }
 

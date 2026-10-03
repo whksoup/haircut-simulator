@@ -1,0 +1,46 @@
+.groom-panel {
+  position: fixed;
+  top: 0;
+  right: 15px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 30px);
+  max-height: 100dvh;
+  color: #ddd;
+  background: #1f1f1f;
+}
+.groom-panel-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.groom-panel .lil-gui.root {
+  position: static;
+  width: 245px;
+  max-height: none;
+}
+.groom-panel .lil-gui.root > .children { overflow: visible; }
+.groom-panel-footer {
+  display: flex;
+  align-items: center;
+  flex: 0 0 28px;
+  gap: 8px;
+  border-top: 1px solid #424242;
+  font: 11px/1 Arial, sans-serif;
+}
+.groom-panel-resize {
+  align-self: stretch;
+  width: 30px;
+  border: 0;
+  border-right: 1px solid #424242;
+  background: #303030;
+  color: #eee;
+  cursor: nesw-resize;
+  touch-action: none;
+  user-select: none;
+  font: 20px/1 Arial, sans-serif;
+}
+.groom-panel-resize:hover { background: #474747; }
+.groom-panel-resize:focus-visible { outline: 2px solid #8ac4ff; outline-offset: -2px; }

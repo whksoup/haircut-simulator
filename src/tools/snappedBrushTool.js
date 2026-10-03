@@ -3,15 +3,15 @@ import { RayBrushTool } from './rayBrushTool.js';
 import { createSnappedBrushFrame, mapRayToBrushPlane } from '../scene/snappedBrushFrame.js';
 import { SnappedBrushCylinder } from '../debug/snappedBrushCylinder.js';
 
-/** Isolated experiment: heading snaps around head-local Y; camera tilt and
- * actual-camera head visibility remain unchanged. Shared lifecycle/solver is
+/** Isolated experiment: heading snaps around world Y with a horizontal cylinder;
+ * actual-camera head visibility remains unchanged. Shared lifecycle/solver is
  * inherited from the ordinary ray brush, with a frozen mouse workplane. */
 export class SnappedBrushTool extends RayBrushTool {
   constructor(options) {
     super(options);
     this.cylinder = new SnappedBrushCylinder();
     this.viewer.scene.add(this.cylinder);
-    this.strokeFrame = null; this.status = 'Hold and drag: heading snaps to 45 degrees; tilt stays unchanged.';
+    this.strokeFrame = null; this.status = 'Hold and drag: heading snaps to 45 degrees; cylinder stays horizontal.';
     this._needsReanchor = false;
   }
   _down(event) {
@@ -67,7 +67,7 @@ export class SnappedBrushTool extends RayBrushTool {
   finishEditing(reason = 'finish') {
     if (this.cylinder) this.cylinder.visible = false;
     if (this.status === 'Brushing on the frozen heading plane.') {
-      this.status = 'Hold and drag: heading snaps to 45 degrees; tilt stays unchanged.';
+      this.status = 'Hold and drag: heading snaps to 45 degrees; cylinder stays horizontal.';
     }
     const ids = super.finishEditing(reason);
     // Base finish drains remaining samples; hide AFTER that drain as well.

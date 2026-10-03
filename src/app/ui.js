@@ -70,6 +70,7 @@
  */
 
 import GUI from 'lil-gui';
+import { mountScalablePanel } from './uiPanelScale.js';
 import { Groom } from '../groom/groom.js';
 
 /**
@@ -111,9 +112,8 @@ export function buildUI({
   setActiveTool, placeCombAtSelection, placeScissorsAtSelection,
   addHairToSelection, removeHairFromSelection,
 }) {
-  const gui = new GUI({ title: 'Groom' });
-  gui.domElement.style.transform       = 'scale(0.6)';
-  gui.domElement.style.transformOrigin = 'top right';
+  const gui = new GUI({ title: 'Groom', autoPlace: false });
+  mountScalablePanel(gui);
   // --- cross-folder sync closures -------------------------------------------
   // DECLARED FIRST, DELIBERATELY. The Seams folder assigns these; main.js's
   // setActiveTool and the history restore path call them through setSyncHooks.
@@ -247,7 +247,7 @@ export function buildUI({
       get scope() { return brush.mask === null ? 'all' : 'selected'; },
       set scope(value) { brush.setMask(value === 'selected' ? raycast?.selection ?? new Set() : null); },
       get status() { return brush.active ? 'Brushing — release to finish' : brush.status || 'Hold left mouse and move to brush'; },
-      get orientation() { const f = brush.strokeFrame; return f ? Math.round(f.heading * 180 / Math.PI) + '° heading; ' + Math.round(f.elevation * 180 / Math.PI) + '° tilt' : 'Heading snaps every 45°; tilt stays free'; },
+      get orientation() { const f = brush.strokeFrame; return f ? Math.round(f.heading * 180 / Math.PI) + '° heading; horizontal' : 'Heading snaps every 45°; always horizontal'; },
       get region() {
         return brush.mask === null ? 'All facets' : brush.mask.size
           ? `${brush.mask.size} selected facet(s)` : 'No facets selected — brush affects nothing';

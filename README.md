@@ -1,16 +1,16 @@
-# Haircut Simulator — snapped brush experiment
+# Haircut Simulator
 
-This branch, `codex/snapped-brush`, is a separate experiment. It includes a copied snapshot of the prior uncommitted orthographic/camera-ray brush work, followed by the snapped-heading variant. It is not merged into the original checkout.
+Current working build: `main` in `F:/haircut-simulator`. On 2026-10-03, the horizontal 45° brush and resizable, scrollable Groom panel were accepted into the main build, including the existing Technical view, growth preview and orthographic grooming base. See the [integration session](docs/sessions/2026-10-03-main-integration.md).
 
-Run `npm run dev` here and open `http://localhost:5177`. Choose **Tools → brush**, then hold left mouse and drag; right-drag still orbits freely between strokes. The brush heading snaps to the nearest45° around the head's localY turning axis while preserving camera tilt. That direction stays fixed for the stroke. A translucent3D cylinder with rounded caps shows the actual brush volume only while held. The Brush folder offers radius, copied facet scope and direction/status feedback. Existing shared-guide mask behavior is retained.
+Run `npm run dev` here and open `http://localhost:5177`. Choose **Tools → brush**, then hold left mouse and drag; right-drag still orbits freely between strokes. The brush heading snaps to the nearest 45° around the scene's vertical Y axis. Its cylinder always stays parallel to the ground, regardless of camera or head tilt, and its working plane stays upright. That direction stays fixed for the stroke. A translucent 3D cylinder with rounded caps shows the actual brush volume only while held. The Brush folder offers radius, copied facet scope and direction/status feedback. Existing shared-guide mask behavior is retained. Exact top/bottom views have parallel pointer rays and safely skip edits.
 
 Head transforms must have positive uniform scale without shear; unsupported transforms show a message and skip brushing. Parallel/backward or excessively distant mouse-plane intersections safely skip edits. Scene/file state and undo semantics remain unchanged. See the [experiment session](docs/sessions/2026-09-28-snapped-brush.md) and [evidence](docs/evidence/snapped-brush/README.md).
 
-The baseline documentation below describes the original working snapshot.
+The September baseline notes below are historical; current development continues on `main` in this checkout.
 
 Interactive Three.js hair grooming with GPU-instanced strands blended from authored guides. Supports facet selection, combing, scissors, seam authoring, undo/redo, and JSON save/load. The active renderer is `GpuHairR3` (`kind: 'guides'`).
 
-## Working baseline — 2026-09-28
+## Historical working baseline — 2026-09-28
 
 The current Technical view implementation is folded into `AgentRefactor`, the working branch for further development at `C:/Users/He Kai/haircut-simulator`. This supersedes the September 27 instruction to keep the baseline and candidate separate. The checkpoint automation remains paused.
 
@@ -99,6 +99,8 @@ public/models/       production head asset
 ```
 
 ## Model and rendering
+
+The Groom panel's bottom-left resize handle scales controls and text together (50–200%). Drag left/down to enlarge or right/up to shrink; arrow keys also resize, and double-click or Home resets to 60%. Oversized content scrolls within the screen while the handle stays visible. This is a shared UI feature, independent of the snapped-brush experiment.
 
 `Groom` owns authored faces, guides, seams, globals, and seeds. Guides hold normalized control points plus length, tangent, and growth rate. The GPU reconstructs dense strands by blending three guides; comb edits update guide texture rows. Mesh topology and GPU buffers are derived state.
 

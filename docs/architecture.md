@@ -84,8 +84,8 @@ After relocation, `npm test` discovers all nine files and reproduces the same fi
 
 No framework, package workspace, dependency injection layer, or broad renaming is needed for the present module count.
 
-## Isolated snapped brush variant
+## Snapped brush
 
-On `codex/snapped-brush` only, `app/main.js` constructs `tools/snappedBrushTool.js` instead of the camera-ray brush. The subclass reuses the base pointer/history and capsule-application contracts. `scene/snappedBrushFrame.js` freezes the head-local heading quantized by45° while retaining elevation, transforms it back to world space, and bounds forward camera-ray intersections with its head-center workplane. Positive uniform transforms are admitted; unsupported scale/shear/reflection is rejected explicitly. Camera head visibility remains camera-based.
+The main build uses `app/main.js` to construct `tools/snappedBrushTool.js` instead of the camera-ray brush. The subclass reuses the base pointer/history and capsule-application contracts. `scene/snappedBrushFrame.js` freezes the world heading quantized by 45° with zero elevation, keeping the cylinder parallel to the scene ground even under camera/head tilt. It derives the mesh-local axis for the transformed head and bounds forward camera-ray intersections with its upright head-center workplane. Exact pole views safely reject parallel mapping. Positive uniform transforms are admitted; unsupported scale/shear/reflection is rejected explicitly. Camera head visibility remains camera-based.
 
-`debug/snappedBrushCylinder.js` displays a cylinder body with rounded ends matching the solver capsule. It is transient, excluded from picking, hidden on completion and disposed with the tool. `tools/rayBrushTool.js` has a behavior-preserving capsule-application extraction used by both brush variants. The original checkout was not modified.
+`debug/snappedBrushCylinder.js` displays a cylinder body with rounded ends matching the solver capsule. It is transient, excluded from picking, hidden on completion and disposed with the tool. `tools/rayBrushTool.js` has a behavior-preserving capsule-application extraction used by both brush variants. The variant was integrated into main on 2026-10-03.

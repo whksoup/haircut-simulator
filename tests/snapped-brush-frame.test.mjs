@@ -9,28 +9,33 @@ function fixture(perspective, heading = 30, tilt = 25) {
   mesh.position.set(0.1, 0.2, -0.1); mesh.rotation.y = 0.2; parent.add(mesh); parent.updateMatrixWorld(true);
   const local = new THREE.Vector3(Math.sin(heading * Math.PI / 180) * Math.cos(tilt * Math.PI / 180),
     Math.sin(tilt * Math.PI / 180), Math.cos(heading * Math.PI / 180) * Math.cos(tilt * Math.PI / 180));
-  const direction = local.clone().applyQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+  const direction = local.clone();
   const center = new THREE.Vector3().applyMatrix4(mesh.matrixWorld);
   const camera = perspective ? new THREE.PerspectiveCamera(50, 1, 0.01, 100) : new THREE.OrthographicCamera(-3, 3, 3, -3, 0.01, 100);
+  if (Math.abs(tilt) === 90) camera.up.set(1, 0, 0);
   camera.position.copy(center).addScaledVector(direction, -7); camera.lookAt(center); camera.updateMatrixWorld(true);
   return {mesh, camera, local};
 }
 
-test('nearest local-Y heading snaps to 45 degrees while tilt stays exact in both camera types and transformed parents', () => {
-  for (const perspective of [false, true]) for (const heading of [-179, -70, -20, 20, 30, 89, 170]) {
-    const f = fixture(perspective, heading), before = f.camera.matrixWorld.toArray();
+test('world heading snaps to 45 degrees and cylinder stays ground-parallel despite camera and head tilt', () => {
+  for (const perspective of [false, true]) for (const heading of [-179, -70, -20, 20, 30, 89, 170]) for (const tilt of [-70, 0, 25, 70]) {
+    const f = fixture(perspective, heading, tilt), before = f.camera.matrixWorld.toArray();
     const frame = createSnappedBrushFrame(f);
     assert.ok(Math.abs(frame.heading - Math.round(heading / 45) * Math.PI / 4) < 1e-10);
-    assert.ok(Math.abs(frame.localAxis.y - f.local.y) < 1e-12);
+    assert.equal(frame.axis.y, 0);
+    assert.equal(frame.elevation, 0);
+    assert.ok(frame.localAxis.clone().transformDirection(f.mesh.matrixWorld).distanceTo(frame.axis) < 1e-12);
+    assert.ok(Math.abs(frame.plane.distanceToPoint(frame.center.clone().add(new THREE.Vector3(0, 2, 0)))) < 1e-12);
     assert.deepEqual(f.camera.matrixWorld.toArray(), before);
     assert.ok(frame.axis.length() > 0.999999999);
     f.mesh.geometry.dispose(); f.mesh.material.dispose();
   }
 });
-test('poles are finite and deterministic, with unchanged elevation', () => {
+test('poles choose a deterministic horizontal heading and safely reject parallel mapping', () => {
   for (const tilt of [-90, 90]) {
     const f = fixture(false, 80, tilt), frame = createSnappedBrushFrame(f);
-    assert.equal(frame.heading, 0); assert.ok(Math.abs(frame.localAxis.y - Math.sign(tilt)) < 1e-12);
+    assert.equal(frame.heading, 0); assert.deepEqual(frame.axis.toArray(), [0, 0, 1]);
+    assert.equal(mapRayToBrushPlane(new THREE.Ray(f.camera.position.clone(), new THREE.Vector3(0, Math.sign(tilt), 0)), frame, 10), null);
     f.mesh.geometry.dispose(); f.mesh.material.dispose();
   }
 });

@@ -123,7 +123,9 @@ export function sampleFacetRoots({
       const py = u * ay + v * by + w * cy;
       const pz = u * az + v * bz + w * cz;
 
-      // Smooth growth normal: barycentric interpolation of the vertex normals.
+      // Interpolate imported vertex normals. These may remain split between
+      // facets; R3 authored shapes no longer use this as their reconstruction
+      // frame. Retained for the no-guide/legacy paths and capsule fallback.
       let nx = u * nax + v * nbx + w * ncx;
       let ny = u * nay + v * nby + w * ncy;
       let nz = u * naz + v * nbz + w * ncz;
@@ -131,8 +133,8 @@ export function sampleFacetRoots({
       nx /= nlen; ny /= nlen; nz /= nlen;
 
       // Arbitrary tangent in the normal plane — fixes a per-strand frame.
-      // In the R3 path guideBinding overwrites this with the blended guide
-      // flow tangent; it survives only where no guide binds.
+      // R3 uses this only when there are no authored guides. Their own frames
+      // are lifted on texture upload instead of blending tangent axes here.
       let tx, ty, tz;
       if (Math.abs(nx) < 0.9) { tx = 0; ty = -nz; tz = ny; }
       else { tx = -nz; ty = 0; tz = nx; }

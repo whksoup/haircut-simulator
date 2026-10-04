@@ -1,0 +1,194 @@
+[FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 12 adjacency edges, chi=2.
+[seams] seeded 0 of 12 edges from creases (> 40deg, concave, softness 0deg); 0 fully hard.
+[seams] seeded 12 of 12 edges from creases (> 40deg, convex, softness 0deg); 12 fully hard.
+[seams] seeded 0 of 12 edges from creases (> 100deg, both, softness 0deg); 0 fully hard.
+[seams] seeded 12 of 12 edges from creases (> 80deg, convex, softness 20deg); 0 fully hard.
+[FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 15 adjacency edges, chi=0.
+all assertions passed
+cube: F=6 E=12 V=8 chi=2
+broken weld: chi=0, 4 boundary edges
+✔ tests\adjacency.test.mjs (123.9537ms)
+✔ copied mask remains highlighted after working selection changes without painting the head (4.091ms)
+✔ mask geometry handles indexed triangles, unknown facets, empty and All masks (0.8726ms)
+✔ overlay inherits head transforms and disposal leaves head resources intact (4.1991ms)
+<anonymous_script>:4
+; return buildDebugConsole;
+  ^
+
+ReferenceError: buildDebugConsole is not defined
+    at eval (eval at <anonymous> (file:///F:/haircut-simulator/tests/console.test.mjs:44:27), <anonymous>:4:3)
+    at file:///F:/haircut-simulator/tests/console.test.mjs:44:78
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.15.0
+✖ tests\console.test.mjs (84.4949ms)
+✔ camera assignment updates rendering, picking and subscribers atomically (4.2954ms)
+✔ twenty projection round trips preserve target-plane landmarks with pan, zoom and resize (4.7821ms)
+✔ six grooming presets are orthographic and both pole presets escape into free orbit (1.8001ms)
+✔ Technical borrows the camera and returns orthographic identity, pose, zoom and target (9.9916ms)
+✔ camera swaps discard residual damping without moving the saved pose (0.6242ms)
+✔ real OrbitControls pan moves the same CSS distance after magnified projection changes (1.0416ms)
+[GpuHairR3] no catalogue on mesh — nothing to grow
+[GpuHairR3] rebuild — 0 strands, 0 facets, 0 guides
+✔ growth preview starts at the full fraction (3.2032ms)
+✔ fraction scrub preserves authored state and derived buffers across rebuilds (4.9312ms)
+✔ arc prefix retains unequal segments, corners, repeated points, and the anchored root (1.9035ms)
+✔ preview settles the current history unit once, locks styling, and never changes serialized state (1.5068ms)
+✔ unclosed gesture defers preview without changing fraction or uniform (0.2644ms)
+✔ tool and renderer action routes refuse authorship while preview is active (1.6761ms)
+✔ preview gesture finish preserves an open cut, closes it once, cancels placement and releases capture (0.4416ms)
+  6a: 4 and 12 (1:3) rewind to 0.25 and 8.25 (1:33)
+  6b: phase 0 is bit-exact identity on all four fixtures
+  6b≡#4: tip 2.9e-17, off-curve 1.7e-17, drawn-vs-cut length 0.0058%, interior spacing 0.476% of L
+  #2 dependency: drifted, f=0.4 lands at arc 0.396099 — the remap is only arc truncation while #2 holds
+  6b: nine vertices at every phase, spacing spread <1%, tip moves continuously
+  6d: root pinned, length monotone in phase, clamps to the scalp
+  6e: unreachable / marginal / exceeds-measured / clamped all named, drift measured not assumed
+  6c: rate round-trips, v5→v6 stamps the default, absent ≠ zero, negative refused
+  preview: rewinding at four phases left the store byte-identical
+[GpuHairR3] rebuild — 0 strands, 0 facets, 2 guides
+  renderer: rate metadata retained, fraction is a runtime-only uniform
+growth: all assertions passed
+[GpuHairR3] no catalogue on mesh — nothing to grow
+✔ tests\growth.test.mjs (219.3777ms)
+all assertions passed — 2 entries on the stack
+restore paths taken: setGuides:1 setGuides:1 rebuild rebuild rebuild
+✔ tests\history.test.mjs (162.9283ms)
+default visibility [
+  { id: 1, visible: false },
+  { id: 2, visible: false },
+  { id: 3, visible: false }
+]
+✔ default groom top-view sweep has a useful visible guide edit against actual GLB (69.8703ms)
+✔ brush useful contact keeps exact roots, tangent, length and settled segment lengths (10.1331ms)
+✔ visibility rejection before or after solve never rewrites guide points (0.9066ms)
+✔ carried spatial cadence is equal for 1, 8 and 64 events and drains long jumps (0.7637ms)
+✔ head visibility clips segment interiors in both cameras, allows silhouette misses and transforms (6.2621ms)
+✔ head shadow oracle agrees with actual head-only rays for rotated transformed geometry (18.7401ms)
+✔ a hidden middle segment stays exact while the visible suffix receives a useful edit (4.1438ms)
+✔ finite comb frame conversion retains exact root and historical scalp clamp (2.8102ms)
+{"fixture":"single-facet","selectedMove":0.17411170251880898,"excludedMove":0.016863754357394675,"rows":[0,1,2,1,0,2],"weights":[0.9965841770172119,0.0027606249786913395,0.0006552173872478306,0.8687258362770081,0.09652510285377502,0.03474903479218483],"lengthResidual":4.440892098500626e-16}
+{"fixture":"shared-guide-occlusion","nearMove":0.024958354161707035,"hiddenMove":0.02495835416170704}
+✔ feasibility: useful single-facet guide bend necessarily moves excluded blended strands, including after reload (7.5009ms)
+✔ feasibility: real head occlusion cannot isolate two strands sharing one guide (5.9815ms)
+✔ hold brush authors selected visible guides only; hover/stationary and empty masks are no-ops (38.7442ms)
+✔ 1, 8, 64 delivered events yield identical authored curves and long jumps do not skip hair (16.9295ms)
+✔ all owned interruptions finish once, leave no busy history and require a fresh press (22.0085ms)
+✔ canStyle prevents authored changes and dispose removes capture listeners (0.4374ms)
+✔ capsule near cap cannot edit guides behind either camera or crossing its near plane (2.4814ms)
+✔ cornered piecewise-linear strokes agree at 1, 8 and 64 subdivisions per leg (23.711ms)
+✔ one long pointer jump edits every crossed guide region without skipped bands (21.4023ms)
+✔ two-of-three facet mask usefully edits both selected guides and preserves exclusion through history and reload (6.6987ms)
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: one commit → one undo entry
+    at file:///F:/haircut-simulator/tests/seam-commit.test.mjs:56:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.15.0
+✖ tests\seam-commit.test.mjs (192.8669ms)
+all assertions passed
+✔ tests\seam-field.test.mjs (130.3064ms)
+[FacetCatalogue] 6 facets from 12 triangles, ids 0–5; 12 adjacency edges, chi=2.
+THREE.Material: parameter 'color' has value of undefined.
+overlay: all assertions passed
+ribbon width = 0.00700 units, flat in surface
+✔ tests\seam-overlay.test.mjs (156.3007ms)
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: pointerup listener is capture-phase
+    at file:///F:/haircut-simulator/tests/seam-release.test.mjs:90:8
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.15.0
+✖ tests\seam-release.test.mjs (142.6731ms)
+[FacetCatalogue] 96 facets from 192 triangles, ids 0–95; 192 adjacency edges, chi=2.
+file:///F:/haircut-simulator/tests/seam-tool.test.mjs:79
+  const d = cat.edgesOfVertex(v).length;
+                ^
+
+TypeError: cat.edgesOfVertex is not a function
+    at file:///F:/haircut-simulator/tests/seam-tool.test.mjs:79:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.15.0
+✖ tests\seam-tool.test.mjs (152.6999ms)
+✔ world heading snaps to 45 degrees and cylinder stays ground-parallel despite camera and head tilt (16.0418ms)
+✔ poles choose a deterministic horizontal heading and safely reject parallel mapping (0.5823ms)
+✔ mapping intersects the snapped head-centered plane, including oblique camera rays (0.3447ms)
+✔ nonuniform, singular, mirrored and sheared head transforms reject explicitly (0.5428ms)
+✔ press displays cylinder without authoring; release reports idle and exact no-op history (11.4336ms)
+✔ oblique drag edits selected visible hair usefully under both projections and preserves history/invariants (19.7912ms)
+✔ frame stays frozen across external camera/mesh changes and cylinder matches final capsule (8.3246ms)
+✔ all interruptions hide cylinder, finish once and do not resume a held pointer (18.8597ms)
+✔ unsafe plane mapping authors nothing and cylinder resources release exactly once (0.8052ms)
+✔ invalid head transform refuses press and retains useful status through inactive finish (0.5412ms)
+[GpuHairR3] no catalogue on mesh — nothing to grow
+[GpuHairR3] rebuild — 0 strands, 0 facets, 1 guides
+[GpuHairR3] no catalogue on mesh — nothing to grow
+[GpuHairR3] rebuild — 0 strands, 0 facets, 2 guides
+✔ a local seam in a cycle pays for going around its endpoint (1.2688ms)
+✔ opposed guide shapes still blend across a fully open boundary (0.894ms)
+✔ split facet normals do not change an open shape blend (1.0259ms)
+✔ a changing third nearest guide fades out instead of popping (0.4044ms)
+✔ texture offsets match authored guides and tangent edits only update rows (3.7404ms)
+✔ binding does not depend on mutable guide shape or frame (0.2799ms)
+✔ coincident guide roots remain finite and deterministic (0.3173ms)
+✔ equivalent curves in different authored frames produce identical texture offsets (1.5899ms)
+✔ cut planes divide translated bounds along every axis, with complementary sides (1.1455ms)
+✔ technical entry and repeated return preserve material, geometry, camera identity and scene settings (12.2146ms)
+✔ head and reconstructed hair share a world-space clipping half-space for every axis and side (1.55ms)
+✔ six presets are axis aligned and orbiting away marks free view (1.7153ms)
+✔ a downward orbit gesture leaves both pole presets without hitting a polar clamp (0.7783ms)
+ℹ tests 66
+ℹ suites 0
+ℹ pass 62
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 483.57
+
+✖ failing tests:
+
+test at tests\console.test.mjs:1:1
+✖ tests\console.test.mjs (84.4949ms)
+  'test failed'
+
+test at tests\seam-commit.test.mjs:1:1
+✖ tests\seam-commit.test.mjs (192.8669ms)
+  'test failed'
+
+test at tests\seam-release.test.mjs:1:1
+✖ tests\seam-release.test.mjs (142.6731ms)
+  'test failed'
+
+test at tests\seam-tool.test.mjs:1:1
+✖ tests\seam-tool.test.mjs (152.6999ms)
+  'test failed'

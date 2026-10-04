@@ -26,7 +26,9 @@ export class RayBrushTool {
     for (const name of ['pointercancel', 'lostpointercapture']) this._listen(this._canvas, name, () => this.finishEditing(name));
     this._listen(window, 'pointerup', e => { if (e.pointerId === this._pointer) this.finishEditing('release'); });
     this._listen(this._canvas, 'wheel', () => this.finishEditing('navigation'));
-    this._listen(window, 'blur', () => this.finishEditing('blur'));
+    // Captured input blur is not loss of window focus: refreshing controls here
+    // can overwrite a text field before its own blur handler commits the edit.
+    this._listen(window, 'blur', e => { if (e.target === window) this.finishEditing('blur'); });
     this._listen(window, 'resize', () => { this.finishEditing('resize'); this.cursor.style.display = 'none'; });
     this._listen(document, 'visibilitychange', () => { if (document.hidden) this.finishEditing('hidden'); });
     this._listen(window, 'keydown', e => {

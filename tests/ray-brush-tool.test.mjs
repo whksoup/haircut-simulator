@@ -97,6 +97,23 @@ test('all owned interruptions finish once, leave no busy history and require a f
   }
 });
 
+test('captured control blur preserves the brush; actual window blur finishes it', () => {
+  const f = fixture();
+  send(f.canvas, 'pointerdown');
+  send(f.canvas, 'pointermove', {clientX: 510});
+  const inputBlur = new Event('blur');
+  // EventTarget has no DOM ancestry: emulate the target seen by window capture.
+  Object.defineProperty(inputBlur, 'target', {value: new Surface()});
+  window.dispatchEvent(inputBlur);
+  assert.equal(f.tool.active, true);
+  assert.equal(f.stats.ends, 0);
+  send(window, 'blur');
+  assert.equal(f.tool.active, false);
+  assert.equal(f.stats.ends, 1);
+  assert.equal(f.history.busy, false);
+  f.dispose();
+});
+
 test('canStyle prevents authored changes and dispose removes capture listeners', () => {
   const f = fixture(); f.tool.canStyle = () => false;
   send(f.canvas, 'pointerdown'); assert.equal(f.tool.active, false); assert.equal(f.stats.begins, 0);

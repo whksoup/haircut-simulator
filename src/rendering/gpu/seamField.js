@@ -9,32 +9,35 @@
  *
  * THE MODEL: A SEAM IS EXTRA DISTANCE, NOT A BOOLEAN.
  *
- * Guide binding weights guides by 1/d², where d is (normal-penalised)
+ * Guide binding uses tapered inverse-square weights, where d starts with the
  * Euclidean distance from a strand root to a guide root. A part is exactly the
  * statement "those two points are further apart than they look" — the hair
  * does not know the skull is 3cm across, it knows the flow field is torn. So a
  * seam does not gate the binder; it ADDS to d:
  *
- *     d_eff = d_euclid · normalPenalty + detour(facet_strand, facet_guide)
+ *     d_eff = d_euclid + detour(facet_strand, facet_guide)
  *
  * detour is the cheapest total cost of walking the facet graph from the
  * strand's facet to the guide's facet, where crossing the boundary between
  * facets a,b costs
  *
- *     scale · edgeLength · (1/p − 1)
+ *     edgeLength + scale · edgeLength · (1/p − 1)
+ *
+ * The returned penalty is the weighted shortest path minus the shortest path
+ * on the same graph with all edges open. Charging travel on BOTH walks is
+ * essential: otherwise a selected seam can be bypassed through an arbitrarily
+ * long chain of open edges at zero cost. The open baseline preserves a zero
+ * penalty when permeability is one, and strip penalties remain unchanged.
  *
  * That expression is the whole design in one line:
  *
- *   p = 1    → cost 0. A fully permeable edge is free, so a groom with no
- *              seams produces bit-identical bindings to the pre-seam binder.
- *              This is the regression property that matters most: seams must
- *              cost nothing until someone authors one.
- *   p = 0.5  → cost = scale · edgeLength. Crossing is possible but the guide
+ *   p = 1    → no EXTRA crossing cost; weighted and open paths agree.
+ *   p = 0.5  → EXTRA cost = scale · edgeLength. Crossing is possible but the guide
  *              on the far side reads as further away, so its weight falls off
  *              — over a width you control, which is what a FADE is.
  *   p ≤ 0    → impassable. Not "very expensive": the edge is removed from the
- *              graph, so the far side is reachable only the long way round the
- *              head, which is far enough to zero the weight by itself.
+ *              graph. A route around an endpoint is still possible, but its
+ *              additional travel now attenuates the far guide.
  *
  * ADDITIVE, NOT MULTIPLICATIVE, and this is deliberate. A multiplier scales
  * with how far apart the two points already are, so a soft seam would barely
@@ -55,7 +58,8 @@
  *
  * COST AND CACHING
  *
- * One Dijkstra per SOURCE facet, cached. Sources are hair-bearing facets
+ * One weighted Dijkstra per SOURCE facet plus a cached open-graph baseline.
+ * Sources are hair-bearing facets
  * (hundreds), not strands (hundreds of thousands), because every strand on a
  * facet shares the answer — that ratio is the reason this is affordable at
  * all. Searches are bounded by `radius` (Euclidean, from the source centroid;
@@ -74,13 +78,13 @@
 import { SEAM_HARD } from '../../groom/seams.js';
 
 /**
- * Multiplies the raw (1/p − 1) step cost. 1 is the honest geometric reading;
- * the default is higher because a single quad edge is small next to guide
- * spacing, and at scale 1 a soft seam is visible only under a microscope.
+ * Multiplies the raw (1/p − 1) crossing penalty. Use geometric scale 1 now
+ * that alternate paths pay for travel: the former boost of 3 made the real
+ * head's half-permeable edges saturate at the same bypass cost as hard parts.
  * Tunable live (it is a binder constant, not model state — it does not
  * serialise and is not in history, same as normalPenalty).
  */
-export const DEFAULT_SEAM_SCALE = 3;
+export const DEFAULT_SEAM_SCALE = 1;
 
 /** Safety cap on one source's field. Hit only if `radius` is Infinity. */
 const MAX_FIELD_FACETS = 4096;
@@ -102,6 +106,7 @@ export class SeamField {
     this._radius    = radius;
     /** @type {Map<number, Map<number, number>>} source facet → field */
     this._cache     = new Map();
+    this._openCache = new Map();
     this._truncated = false;
   }
 
@@ -135,6 +140,7 @@ export class SeamField {
     const v = r > 0 ? r : Infinity;
     if (v === this._radius) return;
     this._radius = v;
+    this._openCache.clear();
     this.invalidate();
   }
 
@@ -153,7 +159,11 @@ export class SeamField {
     let field = this._cache.get(from);
     if (!field) { field = this._build(from); this._cache.set(from, field); }
     const d = field.get(to);
-    return d === undefined ? Infinity : d;
+    if (d === undefined) return Infinity;
+    let open = this._openCache.get(from);
+    if (!open) { open = this._build(from, true); this._openCache.set(from, open); }
+    const baseline = open.get(to);
+    return baseline === undefined ? Infinity : Math.max(0, d - baseline);
   }
 
   get stats() {
@@ -164,7 +174,7 @@ export class SeamField {
   // --- internals ------------------------------------------------------------
 
   /** Dijkstra from one facet over the seam-weighted adjacency. */
-  _build(src) {
+  _build(src, open = false) {
     const cat  = this._catalogue;
     const dist = new Map([[src, 0]]);
     const heap = new MinHeap();
@@ -190,11 +200,11 @@ export class SeamField {
         if (!e || e.b < 0) continue;                     // mesh boundary
         const other = e.a === id ? e.b : e.a;
 
-        const p = this._seams.get(e.a, e.b);
+        const p = open ? 1 : this._seams.get(e.a, e.b);
         if (p <= SEAM_HARD) continue;                    // a wall, not a cost
 
-        // Free when p is 1, which keeps a seamless groom on the old path.
-        const step = p >= 1 ? 0 : this._scale * e.length * (1 / p - 1);
+        // Open edges still charge travel; detour subtracts the open baseline.
+        const step = e.length * (1 + (p >= 1 ? 0 : this._scale * (1 / p - 1)));
         const next = cost + step;
         if (next >= (dist.get(other) ?? Infinity)) continue;
 

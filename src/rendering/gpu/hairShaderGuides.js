@@ -1,5 +1,7 @@
-/** Shared production reconstruction. Growth clips the full rendered arc after
- * blending, length variation and jitter, retaining its original corners. */
+/** Shared production reconstruction. Texture xyz holds mesh-local guide
+ * offsets, already lifted through each guide's own frame and length. Blending
+ * never reorients the result through the head's split facet normals. Growth
+ * clips the final rendered arc, retaining its original corners. */
 import * as THREE from 'three';
 import { SHAPE_POINTS } from '../../hair/strandShape.js';
 
@@ -17,6 +19,7 @@ uniform float uGrowthFraction;
 uniform float uClump;
 uniform float uJitter;
 uniform float uLenVar;
+uniform bool uMeshOffsets;
 uniform vec3 uCombA;
 uniform vec3 uCombB;
 uniform float uCombR;
@@ -35,17 +38,20 @@ vec3 fullStrandVertex(float t) {
   float len = w.x * fetchCP(iGuideRow.x, 0.0).w
             + w.y * fetchCP(iGuideRow.y, 0.0).w
             + w.z * fetchCP(iGuideRow.z, 0.0).w;
-  len *= 1.0 + (hash11(iSeed * 7.13) - 0.5) * 2.0 * uLenVar;
+  float variation = 1.0 + (hash11(iSeed * 7.13) - 0.5) * 2.0 * uLenVar;
   float k = t * (uGuideTexSize.x - 1.0);
-  vec3 local = w.x * fetchCP(iGuideRow.x, k).xyz
+  vec3 offset = w.x * fetchCP(iGuideRow.x, k).xyz
              + w.y * fetchCP(iGuideRow.y, k).xyz
              + w.z * fetchCP(iGuideRow.z, k).xyz;
-  vec2 jd = vec2(hash11(iSeed * 3.7) - 0.5, hash11(iSeed * 5.1) - 0.5) * 2.0;
-  local.xy += jd * (t * t * uJitter);
-  vec3 N = normalize(iNormal);
-  vec3 T = normalize(iTangent - N * dot(iTangent, N));
-  vec3 B = cross(N, T);
-  return iRoot + (T * local.x + B * local.y + N * local.z) * len;
+  if (!uMeshOffsets) {
+    // No authored guides: retain the sampler-normal straight-hair fallback.
+    vec3 N = normalize(iNormal);
+    vec3 T = normalize(iTangent - N * dot(iTangent, N));
+    offset = T * offset.x + cross(N, T) * offset.y + N * offset.z;
+  }
+  vec3 jd = vec3(hash11(iSeed * 3.7), hash11(iSeed * 5.1), hash11(iSeed * 11.9)) * 2.0 - 1.0;
+  offset += jd * (t * t * uJitter * len);
+  return iRoot + offset * variation;
 }
 vec3 growthStrandVertex(float t) {
   if (uGrowthFraction >= 1.0) return fullStrandVertex(t);
@@ -124,6 +130,7 @@ export function makeHairMaterialR3({ color = 0xd4a96a } = {}) {
       uTechnicalClipping: { value: false },
       uTechnicalPlane: { value: new THREE.Vector4(1, 0, 0, 0) },
       uClump: { value: 1 }, uJitter: { value: 0 }, uLenVar: { value: 0 },
+      uMeshOffsets: { value: true },
       uCombA: { value: new THREE.Vector3() }, uCombB: { value: new THREE.Vector3() },
       uCombR: { value: 0 }, uColor: { value: new THREE.Color(color) },
     },

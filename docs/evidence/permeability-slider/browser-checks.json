@@ -1,0 +1,266 @@
+{
+  "slider": {
+    "held": {
+      "unchanged": true,
+      "syncs": 0,
+      "depth": 0
+    },
+    "released": {
+      "changed": true,
+      "syncs": 1,
+      "depth": 1
+    },
+    "noStick": true,
+    "undo": true,
+    "redo": true,
+    "keyboard": "0.28",
+    "typed": "0.63",
+    "preset": "0",
+    "presetUndo": "0.63",
+    "noSelectionDisabled": true,
+    "mixed": "0.81",
+    "previewDisabled": true,
+    "restoredEnabled": true
+  },
+  "blending": {
+    "date": "2026-10-04T17:53:48.444Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "viewport": [
+      1280,
+      720,
+      1
+    ],
+    "checks": [
+      {
+        "name": "all startup vertices match independent authored-frame oracle",
+        "pass": true,
+        "strands": 1671,
+        "maxShapeError": 1.180594709093053e-7
+      },
+      {
+        "name": "all roots remain pinned",
+        "pass": true,
+        "rootError": 0
+      },
+      {
+        "name": "growth 0 preserves segment prefix",
+        "pass": true,
+        "maxArcError": 0,
+        "maxPrefixError": 0
+      },
+      {
+        "name": "growth 0.25 preserves segment prefix",
+        "pass": true,
+        "maxArcError": 4.21843738690475e-8,
+        "maxPrefixError": 6.32355705205939e-8
+      },
+      {
+        "name": "growth 0.5 preserves segment prefix",
+        "pass": true,
+        "maxArcError": 5.8693047505498086e-8,
+        "maxPrefixError": 6.274987793027341e-8
+      },
+      {
+        "name": "growth 0.99 preserves segment prefix",
+        "pass": true,
+        "maxArcError": 5.7005791254116644e-8,
+        "maxPrefixError": 5.96255832214651e-8
+      },
+      {
+        "name": "growth 1 preserves segment prefix",
+        "pass": true,
+        "maxArcError": 0,
+        "maxPrefixError": 0
+      },
+      {
+        "name": "edge 648: fully open is continuous",
+        "pass": true,
+        "delta": 8.314316406863658e-7
+      },
+      {
+        "name": "edge 648: half and hard produce distinct separation",
+        "pass": true,
+        "deltas": [
+          8.314316406863658e-7,
+          0.07988059472830925,
+          0.10750182562533214
+        ]
+      },
+      {
+        "name": "edge 653: fully open is continuous",
+        "pass": true,
+        "delta": 0.000005250138200236124
+      },
+      {
+        "name": "edge 653: half and hard produce distinct separation",
+        "pass": true,
+        "deltas": [
+          0.000005250138200236124,
+          0.4640256817732638,
+          0.580805826663683
+        ]
+      },
+      {
+        "name": "seam changes preserve roots and seeds",
+        "pass": true
+      },
+      {
+        "name": "remove hair updates renderer",
+        "pass": true
+      },
+      {
+        "name": "undo restores exact groom",
+        "pass": true
+      },
+      {
+        "name": "redo removes hair again",
+        "pass": true
+      },
+      {
+        "name": "add restores hair and guide binding",
+        "pass": true
+      },
+      {
+        "name": "load preserves store identities",
+        "pass": true
+      },
+      {
+        "name": "save/load round trip preserves authored JSON",
+        "pass": true
+      },
+      {
+        "name": "save/load reconstructs identical GPU vertices",
+        "pass": true
+      }
+    ],
+    "boundaries": [
+      {
+        "edge": 648,
+        "permeability": 1,
+        "delta": 8.314316406863658e-7,
+        "rows": [
+          1,
+          0,
+          2,
+          0,
+          1,
+          2
+        ],
+        "weights": [
+          0.4646448493003845,
+          0.46463650465011597,
+          0.0707186609506607,
+          0.4646446108818054,
+          0.46463626623153687,
+          0.07071910798549652
+        ]
+      },
+      {
+        "edge": 648,
+        "permeability": 0.5,
+        "delta": 0.07988059472830925,
+        "rows": [
+          1,
+          0,
+          2,
+          0,
+          2,
+          1
+        ],
+        "weights": [
+          0.8390860557556152,
+          0.11481940001249313,
+          0.04609457403421402,
+          0.7757716774940491,
+          0.11807277798652649,
+          0.10615554451942444
+        ]
+      },
+      {
+        "edge": 648,
+        "permeability": 0,
+        "delta": 0.10750182562533214,
+        "rows": [
+          1,
+          0,
+          2,
+          0,
+          2,
+          1
+        ],
+        "weights": [
+          0.9444367289543152,
+          0.03246801346540451,
+          0.0230952687561512,
+          0.8427591919898987,
+          0.128268301486969,
+          0.028972525149583817
+        ]
+      },
+      {
+        "edge": 653,
+        "permeability": 1,
+        "delta": 0.000005250138200236124,
+        "rows": [
+          2,
+          0,
+          1,
+          2,
+          0,
+          1
+        ],
+        "weights": [
+          0.7130354046821594,
+          0.2557864785194397,
+          0.031178120523691177,
+          0.7130436897277832,
+          0.25577878952026367,
+          0.031177520751953125
+        ]
+      },
+      {
+        "edge": 653,
+        "permeability": 0.5,
+        "delta": 0.4640256817732638,
+        "rows": [
+          0,
+          2,
+          1,
+          2,
+          0,
+          1
+        ],
+        "weights": [
+          0.7201720476150513,
+          0.19204533100128174,
+          0.08778263628482819,
+          0.9208382964134216,
+          0.06045222654938698,
+          0.018709473311901093
+        ]
+      },
+      {
+        "edge": 653,
+        "permeability": 0,
+        "delta": 0.580805826663683,
+        "rows": [
+          0,
+          1,
+          2,
+          2,
+          0,
+          1
+        ],
+        "weights": [
+          0.8390974998474121,
+          0.10227859765291214,
+          0.05862392485141754,
+          0.9705978035926819,
+          0.019885597750544548,
+          0.009516609832644463
+        ]
+      }
+    ],
+    "pass": true
+  }
+}

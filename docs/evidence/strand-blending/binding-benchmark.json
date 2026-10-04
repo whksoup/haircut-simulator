@@ -1,0 +1,19 @@
+{
+  "runtime": "v24.15.0",
+  "platform": "win32",
+  "strands": 200000,
+  "guides": 128,
+  "scope": "CPU bind only, no seams; seeded spherical roots, one warmup and three runs; not a frame-rate benchmark",
+  "timings": {
+    "baseline": [
+      159.0051,
+      146.3553,
+      146.6742999999999
+    ],
+    "candidate": [
+      149.86310000000003,
+      142.90650000000016,
+      140.10009999999988
+    ]
+  }
+}

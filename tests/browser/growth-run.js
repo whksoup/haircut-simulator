@@ -39,7 +39,8 @@ function syntheticHair(hair) {
   for(let row=0;row<rows;row++) for(let k=0;k<m;k++) {
     const t=k/(m-1), offset=(row*m+k)*4;
     const point=row===0 ? [0,0,t] : row===1 ? [k<4?0:(k-3)*.13,0,k<4?k*.2:.6] : [Math.sin(t*5)*.2,Math.cos(t*3)*.1-.1,t*.3];
-    data.set(point,offset); if(k===0)data[offset+3]=[.2,.8,.4][row];
+    // Production rows now contain mesh-local offsets including guide length.
+    data.set(point.map(v=>v*[.2,.8,.4][row]),offset); if(k===0)data[offset+3]=[.2,.8,.4][row];
   }
   const tex=new THREE.DataTexture(data,m,rows,THREE.RGBAFormat,THREE.FloatType);tex.needsUpdate=true;
   const geo=new THREE.BufferGeometry();
@@ -95,7 +96,7 @@ export async function runEvaluation() {
     synthetic._geo.getAttribute('iTangent').array.set([0,1,0],0);
     const rotated=captureGrowthVertices(webgl,synthetic,[0],1);
     syntheticRecords.push({name:'rotated-calibration',p:1,captured:rotated});
-    check('GPU capture translated rotated fixture',rotated[0].vertices.every((v,k)=>dist(v,[.3+.2*k/8,.2,.1])<1e-6));
+    check('GPU offsets ignore split normal and translate with root',rotated[0].vertices.every((v,k)=>dist(v,[.3,.2,.1+.2*k/8])<1e-6));
     const syntheticData=synthetic._material.uniforms.uGuideTex.value.image.data;
     syntheticData.copyWithin((9+4)*4,(9+3)*4,(9+3)*4+3);synthetic._material.uniforms.uGuideTex.value.needsUpdate=true;
     const repeated=captureGrowthVertices(webgl,synthetic,[1],1);

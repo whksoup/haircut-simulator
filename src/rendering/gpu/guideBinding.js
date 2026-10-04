@@ -1,282 +1,88 @@
 /**
- * guideBinding.js — bind each render strand to its k nearest guides. SKETCH.
+ * Bind deterministic roots to a spatial guide field. Shape and authored frame
+ * changes belong to texture rows, so binding reads only roots and seams.
+ * Neither split mesh normals nor inferred flow parts may tear open boundaries.
  *
- * Runs after root sampling (CPU side, at build/rebuild time) and produces two
- * instanced attributes for the shader:
+ * Three rows fit the existing instance layout. The fourth nearest distance is
+ * a compact support radius: the third guide fades to zero at a replacement.
+ * Exact four-way equidistance is singular for three-row support; stable row
+ * ordering provides a deterministic fallback there.
  *
- *   iGuideRow  vec3   texture rows of the 3 bound guides (as floats)
- *   iGuideW    vec3   normalised blend weights (sum = 1)
- *
- * Weighting = inverse-square distance, with two corrections that matter more
- * than they look:
- *
- *  NORMAL PENALTY — Euclidean kNN happily binds a strand behind the ear to a
- *  guide on the cheek. Scaling effective distance by (1 + λ(1 - n·n_g)) is a
- *  cheap geodesic-ish proxy: guides facing away are pushed far away. Proper
- *  fix later is geodesic distance over the facet graph; this gets 95% there.
- *
- *  FLOW GATE (part support) — a part is a flow discontinuity. If a candidate
- *  guide's initial direction disagrees strongly with the strand's dominant
- *  (nearest) guide, its weight is zeroed instead of blended, so strands on one
- *  side of a part never average with the other side (which would comb them
- *  flat into the parting line).
- *
- *  SEAM DETOUR (authored parts) — the flow gate is an INFERRED part: it can
- *  only notice a discontinuity that the guides already disagree about, so it
- *  cannot create one, and it does nothing at all where both sides are combed
- *  the same way. Authored seams are the explicit version. Given a SeamField
- *  and a facet id per strand, the effective distance to a guide becomes
- *
- *      d_eff = d_euclid · normalPenalty + seamField.detour(fStrand, fGuide)
- *
- *  so a soft seam attenuates weight across the boundary and a hard one makes
- *  the far side unreachable (weight 0). Both arguments are optional and the
- *  field reports itself inactive when no seam is authored, so the seamless
- *  path is unchanged down to the arithmetic — see seamField.js.
- *
- * Rebinding only happens when guides are ADDED or REMOVED, or when SEAMS
- * CHANGE — combing edits guide points, which the binding doesn't depend on (it
- * reads roots/normals/first-segment flow). For pure combing, nothing here
- * runs.
- *
- * Perf: uniform grid hash over guide roots → candidate set is O(1) per strand;
- * 200k strands bind in a few ms against a few hundred guides. If binding ever
- * shows up in a profile, it's embarrassingly parallel — move it to a worker.
+ * A balanced spatial tree proves the nearest four rather than stopping at
+ * the first grid cell with enough guides. Nonnegative seam costs preserve
+ * the splitting-plane distance bound used to prune the far branch.
  */
-
 export const GUIDES_PER_STRAND = 3;
 
-/**
- * @param {object} o
- * @param {Float32Array} o.rootPositions  strand roots, mesh-local, 3/strand
- * @param {Float32Array} o.rootNormals    strand growth normals, 3/strand
- * @param {number}       o.total          strand count
- * @param {Array}        o.guideList      guides in TEXTURE ROW ORDER (index = row)
- * @param {number}       [o.normalPenalty=2.0]  λ above
- * @param {number}       [o.flowGate=-0.2]      min dot(dir, dominantDir); below → w=0
- * @param {Int32Array}   [o.strandFacets] facet id per strand, 1/strand. Required
- *        for seams to do anything; without it every strand is facet -1, which
- *        the field reads as "unknown provenance" and charges nothing for.
- * @param {import('./seamField.js').SeamField} [o.seamField]
- * @param {number}       [o.seamSearchCells=8]  search radius handed to the
- *        field, in grid cells. Guides further than this lose on Euclidean
- *        distance anyway, so walking the graph to them buys nothing.
- * @param {Float32Array} o.outRows        out: total*3
- * @param {Float32Array} o.outWeights     out: total*3
- * @param {Float32Array} [o.outTangents]  in/out: total*3. Overwritten with the
- *        weight-blended guide flow tangent, orthogonalised against the strand's
- *        own normal. The incoming value (the sampler's arbitrary in-plane
- *        tangent) is the FALLBACK, used only where the blend degenerates or no
- *        guide binds. This is the step that makes the frame field coherent: the
- *        sampler's tangent rule has a hard branch at |nx| = 0.9 that snaps the
- *        frame 90° mid-scalp, which would otherwise survive into the shader and
- *        tear every authored style along that seam.
- */
 export function bindStrandsToGuides({
-  rootPositions, rootNormals, total, guideList,
-  normalPenalty = 2.0, flowGate = -0.2,
-  strandFacets = null, seamField = null, seamSearchCells = 8,
-  outRows, outWeights, outTangents = null,
+  rootPositions, total, guideList, strandFacets = null, seamField = null,
+  seamSearchCells = 8, outRows, outWeights,
 }) {
-  const nGuides = guideList.length;
-  if (nGuides === 0) return;
-
-  // --- uniform grid hash over guide roots ---------------------------------
-  // Cell size ≈ 2× mean nearest-guide spacing; crude heuristic: bbox diag / cbrt(n).
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-  for (const g of guideList) {
-    minX = Math.min(minX, g.root[0]); maxX = Math.max(maxX, g.root[0]);
-    minY = Math.min(minY, g.root[1]); maxY = Math.max(maxY, g.root[1]);
-    minZ = Math.min(minZ, g.root[2]); maxZ = Math.max(maxZ, g.root[2]);
+  if (!guideList.length) return;
+  const min = [Infinity,Infinity,Infinity], max = [-Infinity,-Infinity,-Infinity];
+  for (const g of guideList) for (let a=0;a<3;a++) {
+    min[a]=Math.min(min[a],g.root[a]); max[a]=Math.max(max[a],g.root[a]);
   }
-  const diag = Math.hypot(maxX - minX, maxY - minY, maxZ - minZ) || 1;
-  const cell = Math.max(diag / Math.cbrt(nGuides), 1e-4);
-  const key = (x, y, z) =>
-    `${Math.floor((x - minX) / cell)},${Math.floor((y - minY) / cell)},${Math.floor((z - minZ) / cell)}`;
-
-  /** @type {Map<string, number[]>} cell → guide rows */
-  const grid = new Map();
-  for (let r = 0; r < nGuides; r++) {
-    const g = guideList[r];
-    const k = key(g.root[0], g.root[1], g.root[2]);
-    (grid.get(k) ?? grid.set(k, []).get(k)).push(r);
+  const cell=Math.max(Math.hypot(...max.map((v,a)=>v-min[a]))/Math.cbrt(guideList.length),1e-4);
+  // Allocations scale with guides and happen once per bind, not per strand.
+  function build(indices,depth=0) {
+    if(!indices.length) return null;
+    const axis=depth%3;
+    indices.sort((a,b)=>guideList[a].root[axis]-guideList[b].root[axis] || a-b);
+    const m=indices.length>>1;
+    return {row:indices[m],axis,left:build(indices.slice(0,m),depth+1),right:build(indices.slice(m+1),depth+1)};
   }
-
-  // Precompute each guide's initial flow direction (first shape segment,
-  // expressed in mesh space via pointWorldLocal would be exact; the local
-  // z-dominant approximation below is fine for gating purposes at sketch level:
-  // flow ≈ tangent*p1.x + bitangent*p1.y + normal*p1.z. We reuse guide.tangent
-  // and guide.normal directly since the shape's first segment is what encodes
-  // the comb direction.)
-  const flow = new Float32Array(nGuides * 3);
-  for (let r = 0; r < nGuides; r++) {
-    const g = guideList[r];
-    const p = g.points;
-    // local first-segment direction (from root at origin to point 1)
-    const lx = p[3], ly = p[4], lz = p[5];
-    const [nx, ny, nz] = g.normal;
-    const [tx, ty, tz] = g.tangent;
-    const bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
-    let fx = tx * lx + bx * ly + nx * lz;
-    let fy = ty * lx + by * ly + ny * lz;
-    let fz = tz * lx + bz * ly + nz * lz;
-    const fl = Math.hypot(fx, fy, fz) || 1;
-    flow[r * 3] = fx / fl; flow[r * 3 + 1] = fy / fl; flow[r * 3 + 2] = fz / fl;
+  const tree=build(guideList.map((_,i)=>i));
+  const seamsOn=!!(seamField?.active && strandFacets);
+  if (seamsOn) seamField.setRadius(cell*seamSearchCells);
+  const rows=new Int32Array(4),dist=new Float64Array(4),weights=new Float64Array(3);
+  const p=[0,0,0];
+  let facet=-1;
+  function consider(r,gated) {
+    const g=guideList[r];
+    const dx=p[0]-g.root[0],dy=p[1]-g.root[1],dz=p[2]-g.root[2];
+    let d=dx*dx+dy*dy+dz*dz;
+    if (gated) {
+      const cost=seamField.detour(facet,g.facetId??-1);
+      if(cost>0) d=(Math.sqrt(d)+cost)**2;
+    }
+    if (!Number.isFinite(d)) return;
+    let j=3;
+    if (d>dist[j] || (d===dist[j] && r>=rows[j])) return;
+    while(j>0 && (d<dist[j-1] || (d===dist[j-1] && r<rows[j-1]))) {
+      dist[j]=dist[j-1]; rows[j]=rows[j-1]; j--;
+    }
+    dist[j]=d; rows[j]=r;
   }
-
-  // --- seam field -----------------------------------------------------------
-  // Bound the graph walk to a few grid cells. Doing it here rather than at the
-  // field's construction is deliberate: `cell` is derived from the actual
-  // guide layout, so the bound tracks guide density instead of being a magic
-  // number someone has to retune per head.
-  const seamsOn = !!(seamField && seamField.active && strandFacets);
-  if (seamsOn) seamField.setRadius(cell * seamSearchCells);
-
-  // --- per-strand kNN -------------------------------------------------------
-  const candRows = [];   // reused scratch
-  const candD2 = [];
-
-  // Per-strand state the gatherer reads. Hoisted out of the loop along with
-  // `gather` itself: allocating a closure per strand is 200k closures per
-  // rebind, which is exactly the kind of quiet garbage that turns a 3ms bind
-  // into a frame hitch.
-  let px = 0, py = 0, pz = 0, nx = 0, ny = 0, nz = 0;
-  let cx = 0, cy = 0, cz = 0, fs = -1;
-
-  /**
-   * Fill candRows/candD2 from the grid. `gate` false ignores seams entirely,
-   * which is the retry path below.
-   * @returns {number} candidates rejected by a seam
-   */
-  function gather(gate) {
-    candRows.length = 0; candD2.length = 0;
-    let blocked = 0;
-    // Expand ring search until we have ≥ k candidates (or exhaust the grid).
-    for (let ring = 0; ring < 8 && candRows.length < GUIDES_PER_STRAND; ring++) {
-      for (let dx = -ring; dx <= ring; dx++)
-        for (let dy = -ring; dy <= ring; dy++)
-          for (let dz = -ring; dz <= ring; dz++) {
-            if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== ring) continue;
-            const bucket = grid.get(`${cx + dx},${cy + dy},${cz + dz}`);
-            if (!bucket) continue;
-            for (const r of bucket) {
-              const g = guideList[r];
-              const ddx = g.root[0] - px, ddy = g.root[1] - py, ddz = g.root[2] - pz;
-              const align = nx * g.normal[0] + ny * g.normal[1] + nz * g.normal[2];
-              const pen = 1 + normalPenalty * (1 - Math.max(align, -1));
-              const d2 = (ddx * ddx + ddy * ddy + ddz * ddz) * pen * pen;
-
-              if (!gate) { candRows.push(r); candD2.push(d2); continue; }
-
-              // The one place seams enter the binder. Note the sqrt: the
-              // detour is a LENGTH and has to be added in the same units, not
-              // to the square. Not reached at all on the seamless path.
-              const detour = seamField.detour(fs, g.facetId ?? -1);
-              if (!Number.isFinite(detour)) { blocked++; continue; }
-              if (detour === 0) { candRows.push(r); candD2.push(d2); continue; }
-              const dEff = Math.sqrt(d2) + detour;
-              candRows.push(r);
-              candD2.push(dEff * dEff);
-            }
-          }
-    }
-    return blocked;
+  function visit(node,gated) {
+    if(!node) return;
+    const delta=p[node.axis]-guideList[node.row].root[node.axis];
+    consider(node.row,gated);
+    visit(delta<0?node.left:node.right,gated);
+    if(delta*delta<=dist[3]) visit(delta<0?node.right:node.left,gated);
   }
-
-  for (let i = 0; i < total; i++) {
-    const b3 = i * 3;
-    px = rootPositions[b3]; py = rootPositions[b3 + 1]; pz = rootPositions[b3 + 2];
-    nx = rootNormals[b3];   ny = rootNormals[b3 + 1];   nz = rootNormals[b3 + 2];
-    fs = seamsOn ? strandFacets[i] : -1;
-
-    cx = Math.floor((px - minX) / cell);
-    cy = Math.floor((py - minY) / cell);
-    cz = Math.floor((pz - minZ) / cell);
-
-    const blocked = gather(seamsOn);
-
-    // NOTHING SURVIVED THE GATE. Either every nearby guide is behind a hard
-    // seam, or the strand's own region has no guide in it at all. Rebinding
-    // without the gate is the least-bad answer: the alternative is a strand
-    // with no guide, which renders as the straight default and reads as a bald
-    // patch with a hard edge — a far louder artefact than a strand borrowing
-    // shape across a part it should not have. Authoring a guide inside the
-    // sealed region is the real fix, and this failure mode makes that visible
-    // rather than punishing it.
-    if (candRows.length === 0 && blocked > 0) gather(false);
-
-    // Fallback: brute force if the grid walk found nothing (shouldn't happen).
-    if (candRows.length === 0) {
-      for (let r = 0; r < nGuides; r++) { candRows.push(r); candD2.push(1); }
+  function search(gated) {
+    rows.fill(-1); dist.fill(Infinity); visit(tree,gated);
+  }
+  for(let i=0;i<total;i++) {
+    const b=i*3;
+    for(let a=0;a<3;a++) p[a]=rootPositions[b+a];
+    facet=seamsOn?strandFacets[i]:-1;
+    search(seamsOn);
+    // Preserve orphan-region fallback. Add a guide inside to enforce the part.
+    if(rows[0]<0 && seamsOn) search(false);
+    const radius=dist[3];
+    let sum=0;
+    for(let j=0;j<3;j++) {
+      const taper=Number.isFinite(radius)?Math.max(0,1-Math.sqrt(dist[j]/Math.max(radius,1e-24))):1;
+      weights[j]=rows[j]<0?0:taper*taper/(dist[j]+1e-10);
+      sum+=weights[j];
     }
-
-    // Partial selection of the k smallest (k=3: three linear passes is fine).
-    const rows = [-1, -1, -1];
-    const d2s  = [Infinity, Infinity, Infinity];
-    for (let c = 0; c < candRows.length; c++) {
-      const d2 = candD2[c];
-      if (d2 < d2s[2]) {
-        if (d2 < d2s[0])      { d2s[2]=d2s[1]; rows[2]=rows[1]; d2s[1]=d2s[0]; rows[1]=rows[0]; d2s[0]=d2; rows[0]=candRows[c]; }
-        else if (d2 < d2s[1]) { d2s[2]=d2s[1]; rows[2]=rows[1]; d2s[1]=d2; rows[1]=candRows[c]; }
-        else                  { d2s[2]=d2; rows[2]=candRows[c]; }
-      }
+    if(sum<1e-30) {
+      // Coincident/equidistant roots: no NaN and a repeatable tie break.
+      for(let j=0;j<3;j++) weights[j]=rows[j]<0?0:1/(dist[j]+1e-10);
+      sum=weights[0]+weights[1]+weights[2];
     }
-
-    // Inverse-square weights + flow gate against the dominant guide.
-    const dom = rows[0] * 3;
-    let w0 = 0, w1 = 0, w2 = 0;
-    const ws = [0, 0, 0];
-    for (let j = 0; j < 3; j++) {
-      const r = rows[j];
-      if (r < 0) continue;
-      let w = 1 / (d2s[j] + 1e-10);
-      if (j > 0) {
-        const f = r * 3;
-        const dot = flow[f]*flow[dom] + flow[f+1]*flow[dom+1] + flow[f+2]*flow[dom+2];
-        if (dot < flowGate) w = 0; // other side of a part — don't blend across
-      }
-      ws[j] = w;
-    }
-    const sum = (ws[0] + ws[1] + ws[2]) || 1;
-    w0 = ws[0] / sum; w1 = ws[1] / sum; w2 = ws[2] / sum;
-
-    outRows[b3]     = Math.max(rows[0], 0);
-    outRows[b3 + 1] = Math.max(rows[1], 0);
-    outRows[b3 + 2] = Math.max(rows[2], 0);
-    outWeights[b3]     = w0;
-    outWeights[b3 + 1] = w1;
-    outWeights[b3 + 2] = w2;
-
-    // --- blended flow tangent ----------------------------------------------
-    // Weighted sum of the bound guides' AUTHORED tangents, then Gram-Schmidt
-    // against this strand's own normal so the shader's (T,B,N) basis stays
-    // orthonormal and the strand still fans with the surface.
-    if (outTangents) {
-      const ws3 = [w0, w1, w2];
-      let ax = 0, ay = 0, az = 0;
-      for (let j = 0; j < 3; j++) {
-        const r = rows[j];
-        if (r < 0 || ws3[j] <= 0) continue;
-        const gt = guideList[r].tangent;
-        // Guard against antipodal cancellation: guides that disagree by more
-        // than 90° with the dominant one get flipped before summing, so a
-        // sensible axis survives instead of two tangents annihilating.
-        const dom = guideList[Math.max(rows[0], 0)].tangent;
-        const s = (gt[0]*dom[0] + gt[1]*dom[1] + gt[2]*dom[2]) < 0 ? -1 : 1;
-        ax += gt[0] * ws3[j] * s;
-        ay += gt[1] * ws3[j] * s;
-        az += gt[2] * ws3[j] * s;
-      }
-      const d = ax * nx + ay * ny + az * nz;
-      let ox = ax - nx * d, oy = ay - ny * d, oz = az - nz * d;
-      const ol = Math.hypot(ox, oy, oz);
-      if (ol > 1e-6) {
-        outTangents[b3]     = ox / ol;
-        outTangents[b3 + 1] = oy / ol;
-        outTangents[b3 + 2] = oz / ol;
-      }
-      // else: leave the sampler's tangent in place (degenerate blend).
-    }
+    for(let j=0;j<3;j++) {outRows[b+j]=Math.max(rows[j],0);outWeights[b+j]=weights[j]/(sum||1);}
   }
 }

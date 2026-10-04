@@ -28,10 +28,16 @@ Keep the catalogue and wireframe builder together for now; they share a clear re
 
 1. `app/main.js` creates the viewer and groom, loads the head/catalogue, and wires tools and history.
 2. The factory selects `kind: 'guides'`, constructing `GpuHairR3` under the head so strand data stays mesh-local.
-3. `strandSampler.js` deterministically allocates roots per facet. `guideBinding.js` selects three guides using the seam-aware distance field.
-4. `gpuHairR3.js` writes instance attributes and guide texture rows. `hairShaderGuides.js` reconstructs dense hair.
+3. `strandSampler.js` deterministically allocates roots per facet. `guideBinding.js` finds the nearest four guides with a balanced spatial tree and retains three, tapering weights to zero at the fourth distance. Binding uses roots and seam detours, not mutable guide flow or split facet normals.
+4. `gpuHairR3.js` lifts each guide's normalized points through its own frame and length into mesh-local displacement texture rows. `hairShaderGuides.js` blends those offsets and adds the unchanged strand root. Authored guides retain their normalized storage format; these GPU rows are derived data.
 5. Comb/cut edits update guide rows. Membership edits refresh binding. Seam edits refresh the overlay and invalidate/rebind the seam field.
 6. App-owned history callbacks restore guide patches or whole snapshots, preserving store identity and refreshing derived state.
+
+The seam permeability native range previews its number while dragging and commits through the shared seam refresh path on release. Each release, numeric edit, or preset is one history entry. Range-focused undo/redo routes through application history. Brush window-blur handling ignores captured descendant input blur so numeric controllers can finish their edits before any display refresh.
+
+Seam transport charges physical edge travel plus permeability crossing penalties. The returned detour subtracts the shortest path on the fully open graph, so an open boundary adds zero cost while traveling around a seam endpoint has a meaningful cost. The default crossing scale is 1. A hard edge blocks direct crossing, but finite paths around endpoints still attenuate rather than categorically exclude guides; a closed barrier disconnects regions. The existing fallback borrows guides when a sealed region has none of its own.
+
+Open shape reconstruction no longer inherits the production head's split normals or an inferred direction gate. Jitter is seeded in mesh-local coordinates, scaled by blended length; no-guide fallback hair retains the sampled surface frame. Texture alpha still holds length at point 0 and historical growth rate at point 1. No schema or authored-frame change is required. Three-guide compact support removes ordinary neighbor-replacement jumps but is singular at exact four-way equidistance; stable ordering gives a finite deterministic fallback, not a guarantee of continuity at that exceptional configuration. [Blending repair and evidence](sessions/2026-10-03-strand-blending-investigation.md).
 
 Current groom schema: 6. Guide schema: 5. Growth rates remain serialized per guide for compatibility; they do not drive the visual preview. The Growth UI drives a runtime fraction initialized to 1, outside groom/history state. `app/growthPreview.js` coordinates gesture completion and editing locks; `GpuHairR3.setGrowthFraction()` updates a uniform. The shader measures the final blended/jittered polyline and clips its original segments at the requested arc fraction, preserving root-side corners. At 0, hair fragments are discarded. Preview does not rebind strands or rewrite guides. Valid load restores the full fraction; save always serializes authored full state.
 

@@ -30,6 +30,8 @@
  *     would capture a "before" that is already the after. history.mark() is
  *     idempotent, so calling it on every onChange costs one snapshot per drag
  *     and correctly brackets typed-in values too, which fire both hooks once.
+ *     Permeability uses a native range with a display-only drag preview; its
+ *     change event marks, mutates and commits once on release instead.
  *
  *     The Look and Growth folders are NOT in history: they are pure shader
  *     uniforms and live nowhere in the serialised groom, so there is nothing
@@ -683,28 +685,11 @@ export function buildUI({
       sf.add({ note: 'blend across the boundary — needs guides on both sides' }, 'note')
         .name('affects').disable();
 
-      // PERMEABILITY IS A TEXT FIELD, NOT A SLIDER.
-      //
-      // lil-gui's slider attaches its mousemove/mouseup handlers to `window`
-      // on press and removes them only inside its own mouseup handler. When
-      // that mouseup goes missing — and in this app it reliably does — the
-      // move handler stays attached and the control keeps following the
-      // cursor after the button is up. Two rounds of trying to force it to
-      // let go (blurring, synthetic mouseup at window, capture-phase
-      // listeners) did not fix it, so the control is gone instead.
-      //
-      // Declaring the property as a STRING is the load-bearing detail: for a
-      // string, lil-gui builds a plain <input type="text"> with no pointer
-      // handlers whatsoever. A number controller — even without min/max, so
-      // without a slider track — still binds drag-to-scrub on the field and
-      // would have the same class of problem. There is now no drag machinery
-      // to get stuck, which is a stronger guarantee than any amount of
-      // defensive cleanup.
-      //
-      // Commit on Enter or on blur (both are lil-gui's onFinishChange for a
-      // string), parse, clamp, write once.
+      // Native range input owns its drag lifecycle. Apply only on release so
+      // a 200k-strand rebind does not run for every pointer move. Keep the text
+      // field for precision; both controls use the same one-entry commit path.
       const cPerm = sf.add(edge, 'permeability')
-        .name('permeability (0–1, Enter)')
+        .name('permeability (0–1)')
         .onFinishChange((raw) => {
           if (seamTool.count === 0) { syncSeamSlider(); return; }
           const v = parseFloat(String(raw).trim());
@@ -716,12 +701,43 @@ export function buildUI({
             syncSeamSlider();
             return;
           }
-          const p = Math.min(Math.max(v, 0), 1);
-          const n = seamTool.setPermeability(p);
-          dbg.log(`seam: set ${n} edge(s) to ${p}`);
-          syncSeamSlider();
-          refreshStats();
+          applyPreset(Math.min(Math.max(v, 0), 1));
         });
+
+      const permeabilityRange = document.createElement('input');
+      permeabilityRange.type = 'range';
+      permeabilityRange.min = '0';
+      permeabilityRange.max = '1';
+      permeabilityRange.step = '0.01';
+      permeabilityRange.value = '1';
+      permeabilityRange.setAttribute('aria-labelledby', cPerm.$name.id);
+      permeabilityRange.title = 'Drag to blend; release to apply. Arrow keys adjust by 0.01.';
+      permeabilityRange.style.cssText = 'width:100%;min-width:0;margin:0;cursor:pointer;accent-color:#d4a96a';
+      cPerm.$widget.style.flexDirection = 'column';
+      cPerm.$input.title = 'Type a value from 0 to 1, then press Enter';
+      cPerm.$widget.prepend(permeabilityRange);
+      permeabilityRange.addEventListener('input', () => {
+        // Display only: snapshot and authored state wait until the native
+        // change event. Programmatic text assignment fires no controller edit.
+        cPerm.$input.value = Number(permeabilityRange.value).toFixed(2);
+      });
+      permeabilityRange.addEventListener('change', () => applyPreset(Number(permeabilityRange.value)));
+      permeabilityRange.addEventListener('pointercancel', () => syncSeamSlider());
+      permeabilityRange.addEventListener('blur', () => syncSeamSlider());
+      permeabilityRange.addEventListener('keydown', (e) => {
+        // lil-gui stops keys at the controller, so route range undo explicitly.
+        // The adjacent text input retains its own native text undo behavior.
+        if (!(e.ctrlKey || e.metaKey)) return;
+        const key = e.key.toLowerCase();
+        const action = key === 'z' ? (e.shiftKey ? 'redo' : 'undo') : key === 'y' ? 'redo' : null;
+        if (!action) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (runHistoryAction) runHistoryAction(action);
+        else if (canStyle()) history?.[action]();
+        syncSeamSlider();
+        refreshStats();
+      });
 
       // The three values that actually get used, as one-click buttons. Typing
       // is precise but slow, and "hard part" / "half" / "blended" is most of
@@ -732,8 +748,10 @@ export function buildUI({
         open:  () => applyPreset(1),
       };
       function applyPreset(p) {
-        if (seamTool.count === 0) { dbg.log('seam: select an edge first'); return; }
+        if (!canStyle() || seamTool.count === 0) { syncSeamSlider(); return; }
+        seamTool.endEdit();
         const n = seamTool.setPermeability(p);
+        seamTool.endEdit();
         dbg.log(`seam: set ${n} edge(s) to ${p}`);
         syncSeamSlider();
         refreshStats();
@@ -788,8 +806,10 @@ export function buildUI({
           : `${n} edge${n === 1 ? '' : 's'}${seamTool.isMixed() ? ' (mixed)' : ''}`;
         edge.hint = !seamTool.enabled ? 'turn on Edit seams, then click an edge'
           : n === 0 ? 'click any edge — the nearest one wins'
-          : 'type a value + Enter, or use a preset below';
+          : 'drag slider and release, type a value, or use a preset';
         cPerm.updateDisplay();
+        permeabilityRange.value = edge.permeability;
+        permeabilityRange.disabled = !canStyle() || n === 0;
         cSel.updateDisplay();
         cHint.updateDisplay();
         cEdit.updateDisplay();

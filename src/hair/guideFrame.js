@@ -1,6 +1,6 @@
 import { SHAPE_POINTS } from './strandShape.js';
 
-/** Shared normalized guide frame; matches GuideStore and the GPU shader. */
+/** Shared normalized guide frame; used by tools and GPU texture-row upload. */
 export function guideFrame(g, f = {}) {
   const [nx, ny, nz] = g.normal;
   let [tx, ty, tz] = g.tangent;

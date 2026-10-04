@@ -3,10 +3,11 @@
  *
  * Successor to gpuHair.js. The rendering skeleton is unchanged — preallocated
  * instanced SoA, per-facet {offset,count} slices, one draw call, a float data
- * texture of normalised control-point polylines — but the texture is re-keyed:
+ * texture of control-point displacements — but the texture is re-keyed:
  *
  *     R2:  one row per FACET.  Each strand reads exactly one row (iShapeRow).
- *     R3:  one row per GUIDE.  Each strand blends THREE rows by weight
+ *     R3:  one row per GUIDE, lifted to mesh-local offsets on upload.
+ *          Each strand blends THREE rows by weight
  *          (iGuideRow / iGuideW), so the shape field is smooth across facet
  *          boundaries instead of piecewise-constant.
  *
@@ -27,12 +28,12 @@
  *
  * SEAMS are the third input to the binding, and the only one that is authored
  * somewhere else entirely. A facet id per strand (_iFacet) plus a SeamField
- * turns permeability into extra distance, so a hard part stops guide weight
- * crossing it and a soft one fades. It is cached per source facet, which makes
+ * turns permeability into extra distance. A hard edge blocks direct crossing;
+ * going around an endpoint costs travel. It is cached per source facet, making
  * syncSeams() — not rebuild() — the thing every seam edit must call.
  *
  * Per-facet `length` is retired as an instanced attribute: length now lives in
- * the guide texture (texel(row,0).w) and is blended alongside the shape, which
+ * the guide texture (texel(row,0).w) and is baked into each shape offset, which
  * is what gives smooth length gradients (layered cuts) between long and short
  * guides. groom.faces.length still seeds new guides; it no longer renders.
  *
@@ -45,10 +46,8 @@
  * The shader clips each reconstructed strand by its own full arc length.
  * Authored rate metadata stays in the texture for schema compatibility.
  *
- * Requires (see integration notes):
- *   - strandSampler.sampleFacetRoots accepting an optional `seeds` view.
- *   - guideBinding.bindStrandsToGuides accepting `outTangents` (in-place,
- *     sampler tangent as fallback).
+ * Binding reads roots and seams only. Sampled normals/tangents remain available
+ * for the no-guide fallback and comb pushout, not authored-shape reconstruction.
  *
  * Public API — the renderer.js interface, plus guide/look extensions:
  *     rebuild() / updateFacet(id) / removeFacet(id)
@@ -68,6 +67,7 @@
 import * as THREE from 'three';
 import { makeHairMaterialR3 } from './hairShaderGuides.js';
 import { bindStrandsToGuides, GUIDES_PER_STRAND } from './guideBinding.js';
+import { guideFrame } from '../../hair/guideFrame.js';
 import { SeamField } from './seamField.js';
 import { sampleFacetRoots, MAX_STRANDS } from '../strandSampler.js';
 import { SHAPE_POINTS, straightShape } from '../../hair/strandShape.js';
@@ -132,7 +132,7 @@ export class GpuHairR3 {
     this._material = makeHairMaterialR3({ color });
 
     // --- Guide texture: SHAPE_POINTS wide × rows tall, RGBA float ------------
-    // texel(row, k).xyz = control point k in that guide's (T,B,N) coords.
+    // texel(row, k).xyz = mesh-local displacement, using guide frame + length.
     // texel(row, 0).w   = guide length in mesh units (point 0 is the origin,
     //                     so its alpha is free real estate).
     // texel(row, 1).w   = guide growth rate, mesh units per week (#6c).
@@ -243,7 +243,7 @@ export class GpuHairR3 {
    * does nothing" — the exact symptom the seam feature spent its whole life
    * having for real.
    *
-   * Costs a full rebind (O(strands), a few ms at 200k). That is fine for the
+   * Costs a full rebind. That is fine for the
    * handful of deliberate actions seam authoring involves and would NOT be
    * fine on a drag, which is why permeability is committed on Enter/blur
    * rather than scrubbed — see the ui.js note on the text field.
@@ -279,7 +279,7 @@ export class GpuHairR3 {
   setGuide(guideId, points, length, rate = DEFAULT_GROWTH_RATE) {
     const row = this._guideRow.get(guideId);
     if (row === undefined) return;
-    this._writeGuideRow(row, points, length, rate);
+    this._writeGuideRow(row, points, length, rate, this.guides.get(guideId));
     // Whole-texture re-upload. At realistic guide counts this is small — 2048
     // guides × SHAPE_POINTS × 4 floats ≈ 0.5 MB — and a stroke dirties many
     // rows at once anyway, so batching beats per-row calls. If this ever shows
@@ -295,7 +295,7 @@ export class GpuHairR3 {
       if (!g) continue;
       const row = this._guideRow.get(id);
       if (row === undefined) continue;
-      this._writeGuideRow(row, g.points, g.length, g.rate);
+      this._writeGuideRow(row, g.points, g.length, g.rate, g);
     }
     this._shapeTex.needsUpdate = true;
   }
@@ -361,10 +361,11 @@ export class GpuHairR3 {
 
     this._guideRow.clear();
     this._guideList = list;
+    this._material.uniforms.uMeshOffsets.value = list.length > 0;
     for (let row = 0; row < list.length; row++) {
       const g = list[row];
       this._guideRow.set(g.id, row);
-      this._writeGuideRow(row, g.points ?? straightShape(), g.length, g.rate);
+      this._writeGuideRow(row, g.points ?? straightShape(), g.length, g.rate, g);
     }
     // Unused rows keep stale data; nothing indexes them, so leave them be.
     this._shapeTex.needsUpdate = true;
@@ -396,27 +397,34 @@ export class GpuHairR3 {
   }
 
   /**
-   * Write a normalised polyline, its length and its growth rate into row `row`.
+   * Lift each authored polyline into mesh-local OFFSETS before blending.
+   * Its own frame and length must travel together: averaging coordinates from
+   * different frames and lifting afterward creates artificial plane borders.
+   * Root translation is excluded so every rendered root remains pinned.
+   * Tangent edits are therefore captured by this same cheap row update.
    *
    * The two scalars ride in alpha channels that carry no geometry: the shape
    * is a position per texel and alpha is unused, so `length` sits in texel 0's
    * and `rate` in texel 1's. Length is read per vertex and blended across
-   * the three bound guides. Rate is retained for serialized compatibility;
+   * the three bound guides for jitter amplitude. Shape xyz already includes
+   * the individual guide length. Rate is retained for serialized compatibility;
    * it does not participate in fraction preview.
    *
    * `rate` defaults rather than throwing on a guide that predates the field:
    * this is the hot path for a comb stroke, and a renderer is the wrong place
    * to discover a schema problem — guides.js already rejects a bad one at load.
    */
-  _writeGuideRow(row, points, length, rate = DEFAULT_GROWTH_RATE) {
+  _writeGuideRow(row, points, length, rate = DEFAULT_GROWTH_RATE, guide = null) {
     const base = row * SHAPE_POINTS * 4;
     const r = Number.isFinite(rate) ? rate : DEFAULT_GROWTH_RATE;
+    const f = guide ? guideFrame(guide) : {tx:1,ty:0,tz:0,bx:0,by:1,bz:0,nx:0,ny:0,nz:1};
     for (let k = 0; k < SHAPE_POINTS; k++) {
       const s = k * 3;
       const d = base + k * 4;
-      this._shapeData[d]     = points[s];
-      this._shapeData[d + 1] = points[s + 1];
-      this._shapeData[d + 2] = points[s + 2];
+      const x = points[s], y = points[s + 1], z = points[s + 2];
+      this._shapeData[d]     = (f.tx*x + f.bx*y + f.nx*z) * length;
+      this._shapeData[d + 1] = (f.ty*x + f.by*y + f.ny*z) * length;
+      this._shapeData[d + 2] = (f.tz*x + f.bz*y + f.nz*z) * length;
       this._shapeData[d + 3] = k === 0 ? length : k === 1 ? r : 1.0;
     }
   }
@@ -442,8 +450,8 @@ export class GpuHairR3 {
 
     // Roots / normals / tangents / seeds from the shared sampler. The tangent
     // written here is the sampler's arbitrary in-plane frame; _rebind()
-    // overwrites it with the blended guide flow where a binding exists, so
-    // this value survives only for strands with no guide near them.
+    // uses it only for the no-guide fallback. Authored shapes carry their own
+    // frames in the derived texture, independent of the sampled facet normal.
     const n = sampleFacetRoots({
       geometry:   this.mesh.geometry,
       entry,
@@ -473,7 +481,7 @@ export class GpuHairR3 {
   /**
    * Recompute strand→guide bindings over ALL strands.
    *
-   * Cost is O(strands); at 200k strands this is a few ms, which is fine for
+   * Cost scales with strand count and guide search, which is fine for
    * add/remove/resample but NOT for a 60fps comb stroke. Combing must not
    * reach this function — see the class header.
    */
@@ -492,14 +500,12 @@ export class GpuHairR3 {
 
     bindStrandsToGuides({
       rootPositions: this._iRoot,
-      rootNormals:   this._iNormal,
       total:         this._total,
       guideList:     this._guideList,   // MUST be in texture-row order
       strandFacets:  this._iFacet,     // provenance for the seam walk
       seamField:     this._seams,      // inactive (and free) with no seams authored
       outRows:       this._iGuideRow,
       outWeights:    this._iGuideW,
-      outTangents:   this._iTangent,    // in place: sampler value is the fallback
     });
   }
 

@@ -1,0 +1,12 @@
+{
+  "src/rendering/gpu/guideBinding.js": "e0a7456d47de9bca1eec70c72174e248ec677cfb32e94e4d9a15ff459506d515",
+  "src/rendering/gpu/seamField.js": "d082938d95ad9760c1e7d3bc80bbb3e089ac8fddba87e22b41d52308c722a3aa",
+  "src/rendering/gpu/gpuHairR3.js": "17c13be6e9e046c36866710afe803ebdbc2390b2dc0967effae221352351cd4b",
+  "src/rendering/gpu/hairShaderGuides.js": "84b3f59962f6d034f03696365bba593afa38d7d8da20cc0860f828e95e3b4274",
+  "src/hair/guideFrame.js": "47396c1981162f42834d49090501af19d73e23c19d470f9ff625751a6835639c",
+  "src/rendering/strandSampler.js": "d7e7586bb48434e7d5b8176657f4f4454795a6c78b51371bfb03169fcfeda2a1",
+  "tests/strand-blending.test.mjs": "b9f8f904fd07b50d2c397cab9f1793d3c2169edcf96ce19916c21755d912a768",
+  "tests/browser/blending-run.js": "d57d8f95c27b14d3df138c619d18023037002e8cf492daf3c5b8f4beb1266292",
+  "tests/browser/growth-run.js": "e128e30a215d93f51a70b204fd75ef898a17e275d59c3f2b174f3920536f1bbf",
+  "public/models/head.glb": "0e510e2d4174bece7b0af35257a4624c1b206d18af902591a6d29803146363c0"
+}

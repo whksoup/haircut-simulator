@@ -1,6 +1,6 @@
 # Permeability slider and main publication
 
-Date: 2026-10-05, Asia/Singapore. Owner: primary agent. Checkout: `F:/haircut-simulator`, `main` based on `c153e5f`. Stage: integrated, publication pending.
+Date: 2026-10-05, Asia/Singapore. Owner: primary agent. Checkout: `F:/haircut-simulator`, `main` based on `c153e5f`. Stage: closed. Implementation commit `2ddbf2c` successfully pushed to `origin/main`, advancing the remote from `218a0fd`; this follow-up records publication only.
 
 User requested a permeability slider, integration into the main pipeline, and push to the current online branch. Remote default branch is `origin/main`; fetched remote was `218a0fdd847ee6ea544c92696de03180e9b577ac`. Existing six local main commits are included in the authorized push. Unrelated untracked skills, scratch notes and browser temporary files are excluded.
 

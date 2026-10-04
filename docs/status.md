@@ -4,7 +4,7 @@ Updated: 2026-10-05 (Asia/Singapore). Maintained using [the documentation workfl
 
 ## Permeability and blending integration
 
-Integrated into the active R3 pipeline on `main`: common-frame strand blending, meaningful seam resistance, and a native release-to-apply permeability slider. Browser control checks and all 19 combined GPU checks pass; production build passes; 63 Node tests pass with the same four baseline failures. Publishing to the existing `origin/main` is authorized and is the final step. Owner: primary agent. [Session and evidence](sessions/2026-10-05-permeability-slider-publish.md).
+Integrated into the active R3 pipeline on `main` and pushed to `origin/main` in `2ddbf2c`: common-frame strand blending, meaningful seam resistance, and a native release-to-apply permeability slider. Browser control checks and all 19 combined GPU checks pass; production build passes; 63 Node tests pass with the same four baseline failures. Owner: primary agent. [Session and evidence](sessions/2026-10-05-permeability-slider-publish.md).
 
 ## Main build integration
 
